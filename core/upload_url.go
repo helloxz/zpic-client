@@ -18,7 +18,6 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sourcegraph/conc/pool"
 	"github.com/spf13/viper"
-	"github.com/tidwall/gjson"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -216,14 +215,6 @@ func UploadTaskList() {
 
 // 上传单个图片任务
 func UploadURL(info taskData) (bool, string) {
-	baseURL := viper.GetString("base_url")
-	token := viper.GetString("token")
-	if baseURL == "" || token == "" {
-		model.DB.Model(&model.ZPurls{}).Where("id = ?", info.ID).Update("status", model.UploadStatusFailed)
-		return false, "缺少base_url或token配置"
-	}
-	apiURL := baseURL + "/api/v3/upload"
-
 	model.DB.Model(&model.ZPurls{}).Where("id = ?", info.ID).Update("status", model.UploadStatusUploading)
 
 	re, filePath := DownloadURL(info.OriginURL)
@@ -240,40 +231,23 @@ func UploadURL(info taskData) (bool, string) {
 		return false, "下载失败"
 	}
 
-	params := fmt.Sprintf(`{"dedup":true,"album_id":%d,"watermark":false,"compress":false}`, info.AlbumID)
-
-	client := resty.New().SetTimeout(60 * time.Second)
-	resp, err := client.R().
-		SetHeader("Authorization", "Bearer "+token).
-		SetHeader("User-Agent", "Zpic Client ").
-		SetFile("file", filePath).
-		SetFormData(map[string]string{
-			"params": params,
-		}).
-		Post(apiURL)
-	if err != nil {
-		model.DB.Model(&model.ZPurls{}).Where("id = ?", info.ID).Update("status", model.UploadStatusFailed)
-		// 写入日志
-		helper.WriteLog("URL上传失败，ID：" + strconv.Itoa(int(info.ID)) + "，错误信息：" + err.Error())
-		return false, "上传失败：" + err.Error()
+	uploadReq := UploadReq{
+		FilePath: filePath,
+		AlbumID:  int64(info.AlbumID),
 	}
-
-	body := resp.String()
-	code := gjson.Get(body, "code").Int()
-	if code != 200 {
-		msg := gjson.Get(body, "msg").String()
+	success, result := UploadZpic(uploadReq)
+	if !success {
 		model.DB.Model(&model.ZPurls{}).Where("id = ?", info.ID).Update("status", model.UploadStatusFailed)
-		// 写入日志
-		helper.WriteLog("URL上传失败，ID：" + strconv.Itoa(int(info.ID)) + "，错误信息：" + msg)
-		return false, "上传失败：" + msg
+		helper.WriteLog("URL上传失败，ID：" + strconv.Itoa(int(info.ID)))
+		return false, "上传失败"
 	}
 
 	model.DB.Model(&model.ZPurls{}).Where("id = ?", info.ID).Updates(map[string]interface{}{
-		"imgid":        gjson.Get(body, "data.imgid").String(),
-		"url":          gjson.Get(body, "data.url").String(),
-		"filename":     gjson.Get(body, "data.filename").String(),
-		"image_width":  int(gjson.Get(body, "data.width").Int()),
-		"image_height": int(gjson.Get(body, "data.height").Int()),
+		"imgid":        result.ImgID,
+		"url":          result.URL,
+		"filename":     result.Filename,
+		"image_width":  int(result.Width),
+		"image_height": int(result.Height),
 		"status":       model.UploadStatusSuccess,
 	})
 
@@ -293,7 +267,7 @@ func delTempFile(filePath string) {
 	}
 }
 
-// 现在图片到本地
+// 下载图片到本地
 func DownloadURL(urlStr string) (bool, string) {
 	httpProxy := viper.GetString("http_proxy")
 	tempDir := "data/temp/"

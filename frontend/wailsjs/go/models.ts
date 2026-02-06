@@ -12,11 +12,11 @@ export namespace core {
 	        this.path = source["path"];
 	    }
 	}
-	export class DeleteScanTasksParams {
+	export class DeleteTasksParams {
 	    ids: number[];
 	
 	    static createFrom(source: any = {}) {
-	        return new DeleteScanTasksParams(source);
+	        return new DeleteTasksParams(source);
 	    }
 	
 	    constructor(source: any = {}) {
@@ -80,6 +80,7 @@ export namespace core {
 	}
 	export class ScanListParams {
 	    page: number;
+	    limit: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ScanListParams(source);
@@ -88,6 +89,7 @@ export namespace core {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.page = source["page"];
+	        this.limit = source["limit"];
 	    }
 	}
 	export class SettingData {

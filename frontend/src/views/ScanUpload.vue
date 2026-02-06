@@ -8,6 +8,7 @@ import {
   NDataTable,
   NTag,
   NTooltip,
+  NPopconfirm,
   useMessage
 } from 'naive-ui'
 import {
@@ -15,7 +16,7 @@ import {
   TrashBinOutline,
   RefreshOutline
 } from '@vicons/ionicons5'
-import { GetScanList, AddScanTask, DeleteScanTasks, SelectScanDirectory } from '../../wailsjs/go/core/AppCore'
+import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory } from '../../wailsjs/go/core/AppCore'
 
 interface TaskItem {
   id: number
@@ -223,25 +224,15 @@ const handleScanUpload = async () => {
   }
 }
 
-const deleteSelected = () => {
-  if (!checkedRowKeys.value.length) {
-    message.warning('请先选择要删除的任务')
-    return
-  }
-}
-
-const handleRetryFailed = (row: TaskItem) => {
-  console.log('失败重试', row.id)
-}
-
 const handleDeleteConfirm = async () => {
   if (!checkedRowKeys.value.length) return
 
   loading.value = true
   try {
-    const res = await DeleteScanTasks({ ids: checkedRowKeys.value })
+    const res = await DeleteTasks({ ids: checkedRowKeys.value })
     if (res.status) {
-      message.success('删除成功')
+      const data = res.data as { deleted_count: number; skipped_count: number; message: string }
+      message.success(`删除成功：${data?.deleted_count || 0}个任务已删除`)
       checkedRowKeys.value = []
       fetchData()
     } else {
@@ -249,10 +240,14 @@ const handleDeleteConfirm = async () => {
     }
   } catch (err) {
     console.error('删除失败:', err)
-    message.error('删除失败')
+    message.error(err instanceof Error ? err.message : '删除失败，请稍后重试')
   } finally {
     loading.value = false
   }
+}
+
+const handleRetryFailed = (row: TaskItem) => {
+  console.log('失败重试', row.id)
 }
 
 onMounted(() => {
@@ -281,10 +276,23 @@ onBeforeUnmount(() => {
             扫描上传
           </NButton>
 
-          <NButton type="error" @click="deleteSelected">
-            <template #icon><NIcon><TrashBinOutline /></NIcon></template>
-            删除选中
-          </NButton>
+          <NPopconfirm
+            @positive-click="handleDeleteConfirm"
+            positive-text="确认删除"
+            negative-text="取消"
+          >
+            <template #trigger>
+              <NButton
+                type="error"
+                :disabled="!checkedRowKeys.length"
+                :loading="loading"
+              >
+                <template #icon><NIcon><TrashBinOutline /></NIcon></template>
+                删除选中
+              </NButton>
+            </template>
+            该操作将删除本地上传任务，不影响已上传的云端数据。
+          </NPopconfirm>
         </div>
       </div>
 

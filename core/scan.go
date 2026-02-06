@@ -35,8 +35,10 @@ var (
 
 // ScanListParams 获取扫描任务列表的请求参数
 // Page: 当前页码，从1开始
+// Limit: 每页显示数量，默认为10
 type ScanListParams struct {
-	Page int `json:"page"`
+	Page  int `json:"page"`
+	Limit int `json:"limit"`
 }
 
 // ScanListResponse 获取扫描任务列表的响应数据结构
@@ -54,6 +56,7 @@ type ScanListResponse struct {
 // GetScanList 获取扫描任务列表
 // 支持分页查询，按任务ID降序排列
 // params.Page: 页码，默认为1
+// params.Limit: 每页数量，默认为10
 // 返回任务列表及总数
 func (ac *AppCore) GetScanList(params ScanListParams) ResData {
 	page := params.Page
@@ -61,7 +64,14 @@ func (ac *AppCore) GetScanList(params ScanListParams) ResData {
 	if page < 1 {
 		page = 1
 	}
-	limit := 10 // 每页显示10条
+	limit := params.Limit
+	// 每页数量最小为1，最大为100
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
 	// 计算偏移量
 	offset := (page - 1) * limit
 
@@ -343,17 +353,28 @@ func hexEncodeToString(hash [16]byte) string {
 	return fmt.Sprintf("%x", hash)
 }
 
-// DeleteScanTasksParams 删除扫描任务的请求参数
+// DeleteTasksParams 删除任务的请求参数
 // Ids: 要删除的任务ID数组
-type DeleteScanTasksParams struct {
+type DeleteTasksParams struct {
 	Ids []uint `json:"ids"`
 }
 
-// DeleteScanTasks 删除扫描任务
-// 批量删除指定的任务记录
+// DeleteTaskResult 删除任务的返回结果
+// DeletedCount: 成功删除的任务数量
+// SkippedCount: 跳过的任务数量（因为状态为上传中）
+type DeleteTaskResult struct {
+	DeletedCount int    `json:"deleted_count"`
+	SkippedCount int    `json:"skipped_count"`
+	Message      string `json:"message"`
+}
+
+// DeleteTasks 删除任务
+// 批量删除指定的任务及其关联的URL记录
+// 只删除status非Uploading(2)的任务，Uploading状态的任务会被跳过
+// 使用事务保障数据完整性，同时删除zp_tasks和zp_task_urls表中的记录
 // params.Ids: 要删除的任务ID列表
-// 返回删除结果
-func (ac *AppCore) DeleteScanTasks(params DeleteScanTasksParams) ResData {
+// 返回删除结果详情
+func (ac *AppCore) DeleteTasks(params DeleteTasksParams) ResData {
 	// 校验至少选择一个任务
 	if len(params.Ids) == 0 {
 		return ResData{
@@ -363,20 +384,88 @@ func (ac *AppCore) DeleteScanTasks(params DeleteScanTasksParams) ResData {
 		}
 	}
 
-	// 批量删除
-	result := model.DB.Where("id IN ?", params.Ids).Delete(&model.ZPtasks{})
-	if result.Error != nil {
+	// 筛选出非Uploading状态的任务ID
+	// Uploading状态为2，不能删除
+	var deletableIds []uint
+	var skippedCount int64
+
+	// 查询状态不为Uploading(2)的任务
+	queryResult := model.DB.Model(&model.ZPtasks{}).
+		Where("id IN ? AND status != ?", params.Ids, model.Uploading).
+		Pluck("id", &deletableIds)
+
+	if queryResult.Error != nil {
 		return ResData{
 			Status: false,
-			Msg:    "删除失败：" + result.Error.Error(),
+			Msg:    "查询可删除任务失败：" + queryResult.Error.Error(),
 			Data:   nil,
 		}
 	}
 
+	// 计算被跳过的任务数量（总选择数 - 可删除数）
+	skippedCount = int64(len(params.Ids)) - int64(len(deletableIds))
+
+	// 如果没有可删除的任务，直接返回
+	if len(deletableIds) == 0 {
+		msg := "所选任务均为上传中状态，无法删除"
+		if skippedCount > 0 {
+			msg = fmt.Sprintf("%d个任务均为上传中状态，无法删除", skippedCount)
+		}
+		return ResData{
+			Status: false,
+			Msg:    msg,
+			Data: DeleteTaskResult{
+				DeletedCount: 0,
+				SkippedCount: int(skippedCount),
+				Message:      msg,
+			},
+		}
+	}
+
+	// 使用事务确保数据完整性
+	// 1. 先删除zp_task_urls表中关联的URL记录
+	// 2. 再删除zp_tasks表中的任务记录
+	err := model.DB.Transaction(func(tx *gorm.DB) error {
+		// 批量删除关联的URL记录
+		// 使用WHERE ... IN ...一次性删除所有匹配TaskID的记录，避免循环删除
+		if deleteUrlsResult := tx.Where("task_id IN ?", deletableIds).Delete(&model.ZPTaskUrls{}); deleteUrlsResult.Error != nil {
+			return fmt.Errorf("删除关联URL失败：%w", deleteUrlsResult.Error)
+		}
+
+		// 批量删除任务记录
+		if deleteTasksResult := tx.Where("id IN ?", deletableIds).Delete(&model.ZPtasks{}); deleteTasksResult.Error != nil {
+			return fmt.Errorf("删除任务失败：%w", deleteTasksResult.Error)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return ResData{
+			Status: false,
+			Msg:    "删除失败：" + err.Error(),
+			Data: DeleteTaskResult{
+				DeletedCount: 0,
+				SkippedCount: int(skippedCount),
+				Message:      err.Error(),
+			},
+		}
+	}
+
+	// 构建返回消息
+	message := fmt.Sprintf("成功删除%d个任务", len(deletableIds))
+	if skippedCount > 0 {
+		message = fmt.Sprintf("成功删除%d个任务，跳过%d个上传中任务", len(deletableIds), skippedCount)
+	}
+
 	return ResData{
 		Status: true,
-		Msg:    "删除成功",
-		Data:   nil,
+		Msg:    message,
+		Data: DeleteTaskResult{
+			DeletedCount: len(deletableIds),
+			SkippedCount: int(skippedCount),
+			Message:      message,
+		},
 	}
 }
 

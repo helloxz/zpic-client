@@ -6,7 +6,7 @@ export function AddScanTask(arg1:core.AddScanTaskParams):Promise<core.ResData>;
 
 export function AddUrls(arg1:core.UrlsForm):Promise<core.ResData>;
 
-export function DeleteScanTasks(arg1:core.DeleteScanTasksParams):Promise<core.ResData>;
+export function DeleteTasks(arg1:core.DeleteTasksParams):Promise<core.ResData>;
 
 export function DeleteUrlsByIds(arg1:core.IdsForm):Promise<core.ResData>;
 

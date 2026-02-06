@@ -10,8 +10,8 @@ export function AddUrls(arg1) {
   return window['go']['core']['AppCore']['AddUrls'](arg1);
 }
 
-export function DeleteScanTasks(arg1) {
-  return window['go']['core']['AppCore']['DeleteScanTasks'](arg1);
+export function DeleteTasks(arg1) {
+  return window['go']['core']['AppCore']['DeleteTasks'](arg1);
 }
 
 export function DeleteUrlsByIds(arg1) {
