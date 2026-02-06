@@ -1,5 +1,41 @@
 export namespace core {
 	
+	export class AddScanTaskParams {
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AddScanTaskParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	    }
+	}
+	export class DeleteScanTasksParams {
+	    ids: number[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DeleteScanTasksParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ids = source["ids"];
+	    }
+	}
+	export class ExportParams {
+	    limit: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExportParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.limit = source["limit"];
+	    }
+	}
 	export class IdsForm {
 	    ids: number[];
 	
@@ -40,6 +76,18 @@ export namespace core {
 	        this.status = source["status"];
 	        this.msg = source["msg"];
 	        this.data = source["data"];
+	    }
+	}
+	export class ScanListParams {
+	    page: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ScanListParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.page = source["page"];
 	    }
 	}
 	export class SettingData {

@@ -72,7 +72,7 @@ func InitDB() {
 
 		//自动迁移数据库表结构
 		// 迁移多个表
-		err = DB.AutoMigrate(&ZPurls{})
+		err = DB.AutoMigrate(&ZPurls{}, &ZPtasks{}, &ZPTaskUrls{})
 		if err != nil {
 			fmt.Println("failed to migrate database!")
 			// 写入错误日志

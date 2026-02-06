@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -19,6 +20,13 @@ type ResData struct {
 type HttpParams struct {
 	Path   string
 	Method string
+}
+
+var appCtx context.Context
+
+// 设置全局上下文
+func SetCtx(ctx context.Context) {
+	appCtx = ctx
 }
 
 // 返回resty client实例

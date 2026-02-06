@@ -59,5 +59,25 @@ export const useBaseStore = defineStore('base', {
 				console.error('Failed to fetch album list:', error);
 			}
 		},
+        // 格式化时间
+        formatDateTimeToSecond(value: string){
+            const text = (value || '').trim()
+            if (!text) return '-'
+
+            // 已经是 "YYYY-MM-DD HH:mm:ss" 则直接返回
+            if (!text.includes('T') && text.includes(' ')) return text
+
+            const d = new Date(text)
+            if (Number.isNaN(d.getTime())) return text
+
+            const pad2 = (n: number) => String(n).padStart(2, '0')
+            const yyyy = d.getFullYear()
+            const mm = pad2(d.getMonth() + 1)
+            const dd = pad2(d.getDate())
+            const hh = pad2(d.getHours())
+            const mi = pad2(d.getMinutes())
+            const ss = pad2(d.getSeconds())
+            return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`
+        }
 	},
 });

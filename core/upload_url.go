@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"net/url"
 	"path"
@@ -18,6 +19,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var wg sync.WaitGroup
@@ -31,6 +33,11 @@ type IdsStatus struct {
 // 声明ids结构体
 type IdsForm struct {
 	Ids []uint `json:"ids"`
+}
+
+// 导出参数结构体
+type ExportParams struct {
+	Limit int `json:"limit"`
 }
 
 // 声明前端结构体
@@ -382,6 +389,94 @@ func (ac *AppCore) DeleteUrlsByIds(data IdsForm) ResData {
 	return ResData{
 		Status: true,
 		Msg:    "删除URL成功",
+		Data:   nil,
+	}
+}
+
+// 导出CSV
+func (ac *AppCore) ExportUrlsToCsv(data ExportParams) ResData {
+	limit := data.Limit
+
+	if limit <= 0 {
+		limit = 1000
+	}
+	if limit > 10000 {
+		return ResData{Status: false, Msg: "导出数量不能超过10000条"}
+	}
+
+	// 使用服务端对话框选择保存路径
+	// 注意：此处假设 AppCore 结构体中存在 ctx context.Context 字段，如果不存在请在 AppCore 结构体定义中添加并在启动时赋值
+	defaultFilename := fmt.Sprintf("zpic_export_%s.csv", time.Now().Format("2006-01-02"))
+	filePath, err := runtime.SaveFileDialog(appCtx, runtime.SaveDialogOptions{
+		Title:           "导出记录",
+		DefaultFilename: defaultFilename,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "CSV Files", Pattern: "*.csv"},
+		},
+	})
+
+	if err != nil {
+		return ResData{Status: false, Msg: "打开保存对话框失败：" + err.Error()}
+	}
+
+	// 用户取消了选择
+	if filePath == "" {
+		return ResData{Status: false, Msg: "已取消导出"}
+	}
+
+	var urls []model.ZPurls
+	// 查询状态为成功的，按ID降序排序
+	result := model.DB.Where("status = ?", model.UploadStatusSuccess).Order("id desc").Limit(limit).Find(&urls)
+	if result.Error != nil {
+		return ResData{
+			Status: false,
+			Msg:    "查询数据失败：" + result.Error.Error(),
+			Data:   nil,
+		}
+	}
+
+	if len(urls) == 0 {
+		return ResData{Status: false, Msg: "没有可导出的数据"}
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return ResData{Status: false, Msg: "创建文件失败：" + err.Error()}
+	}
+	defer file.Close()
+
+	// 写入UTF-8 BOM，防止Excel打开中文乱码
+	file.WriteString("\xEF\xBB\xBF")
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// 写入表头
+	header := []string{"ID", "原始URL", "文件名", "图片URL", "宽度", "高度", "添加时间", "更新时间"}
+	if err := writer.Write(header); err != nil {
+		return ResData{Status: false, Msg: "写入表头失败：" + err.Error()}
+	}
+
+	// 写入数据
+	for _, u := range urls {
+		record := []string{
+			strconv.FormatUint(uint64(u.ID), 10),
+			u.OriginURL,
+			u.FileName,
+			u.URL,
+			strconv.Itoa(u.ImageWidth),
+			strconv.Itoa(u.ImageHeight),
+			u.CreatedAt.Format("2006-01-02 15:04:05"),
+			u.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
+		if err := writer.Write(record); err != nil {
+			return ResData{Status: false, Msg: "写入数据失败：" + err.Error()}
+		}
+	}
+
+	return ResData{
+		Status: true,
+		Msg:    fmt.Sprintf("成功导出 %d 条数据", len(urls)),
 		Data:   nil,
 	}
 }

@@ -14,16 +14,18 @@ import {
   NModal,
   NDropdown,
   useMessage,
-  NSelect
+  NSelect,
+  NInputNumber
 } from 'naive-ui'
 import { useBaseStore } from '../stores/base'
 import {
   AddOutline,
   TrashOutline,
   SyncOutline,
-  CopyOutline
+  CopyOutline,
+  DownloadOutline
 } from '@vicons/ionicons5'
-import { GetUrlsList, AddUrls, UpdateUrlsStatus, DeleteUrlsByIds } from '../../wailsjs/go/core/AppCore'
+import { GetUrlsList, AddUrls, UpdateUrlsStatus, DeleteUrlsByIds, ExportUrlsToCsv } from '../../wailsjs/go/core/AppCore'
 
 interface UrlItem {
   id: number
@@ -60,25 +62,6 @@ const showAddModal = ref(false)
 const showDeleteConfirm = ref(false)
 const deleting = ref(false)
 
-const formatDateTimeToSecond = (value: string) => {
-  const text = (value || '').trim()
-  if (!text) return '-'
-
-  // 已经是 "YYYY-MM-DD HH:mm:ss" 则直接返回
-  if (!text.includes('T') && text.includes(' ')) return text
-
-  const d = new Date(text)
-  if (Number.isNaN(d.getTime())) return text
-
-  const pad2 = (n: number) => String(n).padStart(2, '0')
-  const yyyy = d.getFullYear()
-  const mm = pad2(d.getMonth() + 1)
-  const dd = pad2(d.getDate())
-  const hh = pad2(d.getHours())
-  const mi = pad2(d.getMinutes())
-  const ss = pad2(d.getSeconds())
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`
-}
 
 const renderEllipsisWithTooltip = (value?: string) => {
   const text = (value ?? '').trim()
@@ -116,7 +99,7 @@ function createColumns(): DataTableColumns<UrlItem> {
     {
       title: 'ID',
       key: 'id',
-      width: 80,
+      width: 70,
       fixed: 'left'
     },
     {
@@ -158,7 +141,7 @@ function createColumns(): DataTableColumns<UrlItem> {
       key: 'created_at',
       width: 120,
       render(row) {
-        return formatDateTimeToSecond(row.created_at)
+        return baseStore.formatDateTimeToSecond(row.created_at)
       }
     },
     {
@@ -166,7 +149,7 @@ function createColumns(): DataTableColumns<UrlItem> {
       key: 'updated_at',
       width: 120,
       render(row) {
-        return formatDateTimeToSecond(row.updated_at)
+        return baseStore.formatDateTimeToSecond(row.updated_at)
       }
     },
     {
@@ -316,6 +299,34 @@ const showAddDialog = () => {
   showAddModal.value = true
 }
 
+// 导出相关逻辑
+const exportLimit = ref(1000)
+const exporting = ref(false)
+
+const handleExport = async () => {
+  try {
+    exporting.value = true
+    // 调用后端导出方法，后端会处理 SaveFileDialog
+    const res = await ExportUrlsToCsv({ limit: exportLimit.value })
+
+    if (res.status) {
+      message.success(res.msg || '导出成功')
+    } else {
+      // 如果是取消导出，使用 info 提示而不是 error
+      if (res.msg === '已取消导出') {
+        message.info(res.msg)
+      } else {
+        message.error(res.msg || '导出失败')
+      }
+    }
+  } catch (err) {
+    console.error('导出异常:', err)
+    message.error('导出过程发生错误')
+  } finally {
+    exporting.value = false
+  }
+}
+
 const changeStatus = () => {
   console.log('change status')
 }
@@ -422,6 +433,24 @@ onBeforeUnmount(() => {
             <template #icon><NIcon><TrashOutline /></NIcon></template>
             删除选中
           </NButton>
+
+          <!-- 导出区域 -->
+          <div class="export-area">
+            <span class="export-label">导出最近:</span>
+            <NInputNumber 
+              v-model:value="exportLimit" 
+              :min="1" 
+              :max="10000" 
+              style="width: 100px" 
+              size="medium"
+              :show-button="false"
+            />
+            <span class="export-label">条</span>
+            <NButton @click="handleExport" :loading="exporting">
+              <template #icon><NIcon><DownloadOutline /></NIcon></template>
+              导出表格
+            </NButton>
+          </div>
         </div>
       </div>
 
@@ -515,6 +544,22 @@ onBeforeUnmount(() => {
 .toolbar-actions {
   display: flex;
   gap: 8px;
+  align-items: center; /* 确保垂直居中 */
+  flex-wrap: wrap;
+}
+
+.export-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  border-left: 1px solid #eee;
+  padding-left: 12px;
+}
+
+.export-label {
+  font-size: 14px;
+  color: #666;
 }
 
 .url-table {

@@ -25,6 +25,8 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// 让core包也能获取startup上下文，之所以这样用是因为runtime应用启动回调，包需要上下文参数，不然其它binds调用会很麻烦
+	core.SetCtx(ctx)
 	// 初始化配置文件
 	pkg.LoadConfig()
 	// 初始化数据库链接

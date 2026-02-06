@@ -1,0 +1,424 @@
+package core
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/zeebo/xxh3"
+	"zpic-client/helper"
+	"zpic-client/model"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+const (
+	MaxFileSize = 10 * 1024 * 1024 // 10MB
+)
+
+var (
+	allowedExtensions = map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".bmp":  true,
+		".gif":  true,
+		".webp": true,
+	}
+)
+
+// ScanListParams 获取扫描任务列表的请求参数
+// Page: 当前页码，从1开始
+type ScanListParams struct {
+	Page int `json:"page"`
+}
+
+// ScanListResponse 获取扫描任务列表的响应数据结构
+// Items: 当前页的任务列表
+// Total: 任务总数量
+// Page: 当前页码
+// Limit: 每页显示数量
+type ScanListResponse struct {
+	Items []model.ZPtasks `json:"items"`
+	Total int64           `json:"total"`
+	Page  int             `json:"page"`
+	Limit int             `json:"limit"`
+}
+
+// GetScanList 获取扫描任务列表
+// 支持分页查询，按任务ID降序排列
+// params.Page: 页码，默认为1
+// 返回任务列表及总数
+func (ac *AppCore) GetScanList(params ScanListParams) ResData {
+	page := params.Page
+	// 页码最小为1
+	if page < 1 {
+		page = 1
+	}
+	limit := 10 // 每页显示10条
+	// 计算偏移量
+	offset := (page - 1) * limit
+
+	var tasks []model.ZPtasks
+	// 按ID降序查询，限制返回数量并跳过已显示的数据
+	result := model.DB.Order("id desc").Limit(limit).Offset(offset).Find(&tasks)
+	if result.Error != nil {
+		return ResData{
+			Status: false,
+			Msg:    "获取任务列表失败：" + result.Error.Error(),
+			Data:   nil,
+		}
+	}
+
+	// 统计任务总数
+	var total int64
+	model.DB.Model(&model.ZPtasks{}).Count(&total)
+
+	return ResData{
+		Status: true,
+		Msg:    "获取成功",
+		Data: ScanListResponse{
+			Items: tasks,
+			Total: total,
+			Page:  page,
+			Limit: limit,
+		},
+	}
+}
+
+// AddScanTaskParams 添加扫描任务的请求参数
+// Path: 要扫描的目录路径
+type AddScanTaskParams struct {
+	Path string `json:"path"`
+}
+
+// AddScanTask 添加扫描任务
+// 将用户选择的目录路径写入数据库，创建待扫描任务
+// 任务初始状态为 PendingScan(0)，成功/失败/总数均为0
+// params.Path: 扫描目录的绝对路径
+// 返回操作结果
+func (ac *AppCore) AddScanTask(params AddScanTaskParams) ResData {
+	// 校验目录路径不能为空
+	if params.Path == "" {
+		return ResData{
+			Status: false,
+			Msg:    "目录路径不能为空",
+			Data:   nil,
+		}
+	}
+
+	// 创建新任务记录
+	task := model.ZPtasks{
+		Path:       params.Path,       // 扫描路径
+		Status:     model.PendingScan, // 初始状态：待扫描
+		SuccessNum: 0,                 // 初始成功数量：0
+		FailedNum:  0,                 // 初始失败数量：0
+		TotalNum:   0,                 // 初始总数：0
+		CreatedAt:  time.Now(),        // 创建时间
+		UpdatedAt:  time.Now(),        // 更新时间
+	}
+
+	// 写入数据库
+	result := model.DB.Create(&task)
+	if result.Error != nil {
+		return ResData{
+			Status: false,
+			Msg:    "创建任务失败：" + result.Error.Error(),
+			Data:   nil,
+		}
+	}
+
+	// 异步执行扫描任务，不阻塞AddScanTask
+	go ScanTaskURLS(ScanTaskURLSParams{
+		TaskID: task.ID,
+		Path:   params.Path,
+	})
+
+	return ResData{
+		Status: true,
+		Msg:    "任务创建成功",
+		Data:   nil,
+	}
+}
+
+// ScanTaskURLSParams 扫描任务的参数结构体
+// 用于接收任务ID和路径信息
+type ScanTaskURLSParams struct {
+	TaskID uint   `json:"task_id"`
+	Path   string `json:"path"`
+}
+
+// ScanTaskURLS 扫描任务目录下的图片文件
+// 扫描指定目录中符合条件（指定后缀且大小不超过10MB）的图片文件
+// 将扫描结果写入zp_task_urls表，并更新对应任务的扫描状态
+// params: 包含任务ID和扫描路径的参数
+func ScanTaskURLS(params ScanTaskURLSParams) {
+	taskID := params.TaskID
+	scanPath := params.Path
+
+	// 检查路径是否存在
+	if _, err := os.Stat(scanPath); os.IsNotExist(err) {
+		// 路径不存在，将任务状态更新为UploadCompleted
+		if updateResult := model.DB.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+			"status":     model.UploadCompleted,
+			"updated_at": time.Now(),
+		}); updateResult.Error != nil {
+			helper.WriteLog("ScanTaskURLS: 更新任务状态失败，任务ID: " + strconv.Itoa(int(taskID)) + "，错误: " + updateResult.Error.Error())
+		}
+		return
+	}
+
+	// 扫描目录下的文件
+	fileInfos, err := scanDirectory(scanPath)
+	if err != nil {
+		helper.WriteLog("ScanTaskURLS: 扫描目录失败，路径: " + scanPath + "，错误: " + err.Error())
+		// 更新任务状态为失败
+		return
+	}
+
+	// 如果没有扫描到文件，直接返回
+	if len(fileInfos) == 0 {
+		return
+	}
+
+	// 使用事务提交数据，保障一致性
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
+		// 批量插入扫描到的文件信息到zp_task_urls表
+		// 使用INSERT OR IGNORE处理重复hash的情况
+		var taskUrls []model.ZPTaskUrls
+		for _, info := range fileInfos {
+			taskUrls = append(taskUrls, model.ZPTaskUrls{
+				TaskID:     taskID,
+				OriginPath: info.FullPath,
+				FileName:   info.FileName,
+				FileSize:   info.FileSize,
+				FileHash:   info.FileHash,
+				CreatedAt:  time.Now(),
+				UpdatedAt:  time.Now(),
+				Status:     model.URLPending,
+			})
+		}
+
+		if len(taskUrls) > 0 {
+			// 使用Clauses配置INSERT OR IGNORE，处理重复hash
+			if createResult := tx.Clauses(&clause.Insert{
+				Modifier: "OR IGNORE",
+			}).Create(&taskUrls); createResult.Error != nil {
+				return createResult.Error
+			}
+		}
+
+		// 获取实际插入成功的记录数量
+		var insertedCount int64
+		if countResult := tx.Model(&model.ZPTaskUrls{}).Where("task_id = ?", taskID).Count(&insertedCount); countResult.Error != nil {
+			return countResult.Error
+		}
+
+		// 更新任务状态为ScanCompleted=1，并更新TotalNum
+		if updateResult := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+			"status":     model.ScanCompleted,
+			"total_num":  int(insertedCount),
+			"updated_at": time.Now(),
+		}); updateResult.Error != nil {
+			return updateResult.Error
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		helper.WriteLog("ScanTaskURLS: 事务提交失败，任务ID: " + strconv.Itoa(int(taskID)) + "，错误: " + err.Error())
+	}
+}
+
+// FileInfo 扫描到的文件信息结构体
+// 用于存储扫描到的图片文件的详细信息
+type FileInfo struct {
+	FullPath string // 文件绝对完整路径
+	FileName string // 文件名
+	FileSize int64  // 文件大小（字节）
+	FileHash string // 文件hash
+}
+
+// scanDirectory 扫描指定目录下的图片文件
+// scanPath: 要扫描的目录路径
+// 返回扫描到的文件信息列表和错误信息
+// 扫描规则：
+//   - 只扫描指定后缀的文件：.jpg, .jpeg, .png, .bmp, .gif, .webp（不区分大小写）
+//   - 文件大小不能超过10MB
+//   - 不递归扫描子目录
+func scanDirectory(scanPath string) ([]FileInfo, error) {
+	var files []FileInfo
+
+	// 读取目录下的所有条目
+	entries, err := os.ReadDir(scanPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 遍历目录条目
+	for _, entry := range entries {
+		// 只处理文件，不处理子目录
+		if entry.IsDir() {
+			continue
+		}
+
+		// 获取文件名
+		fileName := entry.Name()
+
+		// 获取文件扩展名（转小写）
+		ext := strings.ToLower(filepath.Ext(fileName))
+
+		// 检查文件扩展名是否在允许列表中
+		if !allowedExtensions[ext] {
+			continue
+		}
+
+		// 获取文件的完整路径
+		fullPath := filepath.Join(scanPath, fileName)
+
+		// 获取文件信息
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		// 获取文件大小
+		fileSize := info.Size()
+
+		// 检查文件大小是否超过10MB
+		if fileSize > MaxFileSize {
+			continue
+		}
+
+		// 获取文件hash
+		fileHash, err := getFileHash(fullPath)
+		if err != nil {
+			continue
+		}
+
+		// 添加到文件列表
+		files = append(files, FileInfo{
+			FullPath: fullPath,
+			FileName: fileName,
+			FileSize: fileSize,
+			FileHash: fileHash,
+		})
+	}
+
+	return files, nil
+}
+
+// getFileHash 计算文件的hash值
+// 使用xxh3算法计算文件的哈希值
+// filePath: 文件的完整路径
+// 返回文件的hash值
+func getFileHash(filePath string) (string, error) {
+	// 打开文件
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// 计算文件hash（xxh3算法）
+	hasher := xxh3.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
+	}
+	fileHash := fmt.Sprintf("%x", hasher.Sum64())
+
+	return fileHash, nil
+}
+
+// hexEncodeToString 将hash值转换为十六进制字符串
+// 用于将xxh3计算得到的hash值转换为可存储的字符串格式
+func hexEncodeToString(hash [16]byte) string {
+	return fmt.Sprintf("%x", hash)
+}
+
+// DeleteScanTasksParams 删除扫描任务的请求参数
+// Ids: 要删除的任务ID数组
+type DeleteScanTasksParams struct {
+	Ids []uint `json:"ids"`
+}
+
+// DeleteScanTasks 删除扫描任务
+// 批量删除指定的任务记录
+// params.Ids: 要删除的任务ID列表
+// 返回删除结果
+func (ac *AppCore) DeleteScanTasks(params DeleteScanTasksParams) ResData {
+	// 校验至少选择一个任务
+	if len(params.Ids) == 0 {
+		return ResData{
+			Status: false,
+			Msg:    "请选择要删除的任务",
+			Data:   nil,
+		}
+	}
+
+	// 批量删除
+	result := model.DB.Where("id IN ?", params.Ids).Delete(&model.ZPtasks{})
+	if result.Error != nil {
+		return ResData{
+			Status: false,
+			Msg:    "删除失败：" + result.Error.Error(),
+			Data:   nil,
+		}
+	}
+
+	return ResData{
+		Status: true,
+		Msg:    "删除成功",
+		Data:   nil,
+	}
+}
+
+// SelectScanDirectory 选择扫描目录
+// 打开系统目录选择对话框，让用户选择要扫描的文件夹
+// 返回用户选择的目录路径，用户取消返回空字符串
+func (ac *AppCore) SelectScanDirectory() (string, error) {
+	// 打开目录选择对话框
+	path, err := runtime.OpenDirectoryDialog(appCtx, runtime.OpenDialogOptions{
+		Title: "选择要扫描的目录",
+	})
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// GetTotalPages 获取扫描任务的总页数
+// 根据任务总数和每页10条计算总页数
+// 返回总页数，最少返回1
+func (ac *AppCore) GetTotalPages() int {
+	var total int64
+	model.DB.Model(&model.ZPtasks{}).Count(&total)
+	limit := 10 // 与GetScanList保持一致
+	// 无数据时返回1
+	if total <= 0 {
+		return 1
+	}
+	// 计算总页数
+	pages := int(total) / limit
+	// 如果有余数，总页数加1
+	if int(total)%limit > 0 {
+		pages++
+	}
+	return pages
+}
+
+// GetScanTaskCount 获取扫描任务的总数
+// 统计 zp_tasks 表中的所有记录数量
+// 返回任务总数
+func (ac *AppCore) GetScanTaskCount() int64 {
+	var count int64
+	model.DB.Model(&model.ZPtasks{}).Count(&count)
+	return count
+}
