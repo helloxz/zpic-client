@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zeebo/xxh3"
 	"zpic-client/helper"
 	"zpic-client/model"
+
+	"github.com/zeebo/xxh3"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
@@ -510,4 +511,218 @@ func (ac *AppCore) GetScanTaskCount() int64 {
 	var count int64
 	model.DB.Model(&model.ZPtasks{}).Count(&count)
 	return count
+}
+
+// TaskURLCounts 任务URL统计结果结构体
+// 用于存储单个任务的URL成功和失败数量统计
+type TaskURLCounts struct {
+	SuccessCount int64 // 成功上传的URL数量
+	FailedCount  int64 // 上传失败的URL数量
+	TotalCount   int64 // 成功+失败的总数
+}
+
+// UpdateOneTask 更新单个上传任务的进度
+// 1. 查询status=1或2的任务（扫描完成/上传中），按id增序排列，取一条
+// 2. 获取该任务的ID和TotalNum
+// 3. 查询该任务关联的所有URL的统计信息（成功数、失败数）
+// 4. 判断是否完成：成功+失败 == TotalNum
+//   - 完成：更新status为UploadCompleted(3)，同时更新SuccessNum和FailedNum
+//   - 未完成但有进度（成功数或失败数>0）：更新status为Uploading(2)，更新SuccessNum和FailedNum
+//   - 未完成且无进度：只更新SuccessNum和FailedNum，状态不变
+//
+// 性能优化：使用单次查询统计URL数量，减少数据库访问
+func UpdateOneTask() (bool, error) {
+	// Step 1: 查询status=1(扫描完成)或status=2(上传中)的任务，按id增序排序，只取一条
+	var task model.ZPtasks
+	queryResult := model.DB.Where("status IN ?", []int8{model.ScanCompleted, model.Uploading}).Order("id asc").First(&task)
+	if queryResult.Error != nil {
+		if queryResult.Error == gorm.ErrRecordNotFound {
+			// 没有需要处理的任务，返回false
+			return false, nil
+		}
+		return false, queryResult.Error
+	}
+
+	// 没有查询到任务
+	if task.ID == 0 {
+		return false, nil
+	}
+
+	// Step 2 & 3: 使用单次查询统计该任务下所有URL的成功和失败数量
+	// 使用原生SQL进行聚合查询，性能优于多次查询
+	var counts TaskURLCounts
+	countQuery := `
+		SELECT
+			COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) as success_count,
+			COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) as failed_count,
+			COALESCE(SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END), 0) as total_count
+		FROM %s
+		WHERE task_id = ?
+	`
+	countSQL := fmt.Sprintf(countQuery, model.ZPTaskUrls{}.TableName(), model.URLSuccess, model.URLFailed, model.URLSuccess, model.URLFailed)
+
+	countResult := model.DB.Raw(countSQL, task.ID).Scan(&counts)
+	if countResult.Error != nil {
+		return false, countResult.Error
+	}
+
+	// Step 4: 判断任务状态并更新
+	isCompleted := counts.TotalCount == int64(task.TotalNum)
+	hasProgress := counts.SuccessCount > 0 || counts.FailedCount > 0
+
+	// 构建更新数据
+	updateData := map[string]interface{}{
+		"success_num": counts.SuccessCount,
+		"failed_num":  counts.FailedCount,
+		"updated_at":  time.Now(),
+	}
+
+	// 根据完成状态和进度更新任务状态
+	if isCompleted {
+		// 任务完成：更新为UploadCompleted(3)
+		updateData["status"] = model.UploadCompleted
+	} else if hasProgress {
+		// 任务进行中（有进度但未完成）：更新为Uploading(2)
+		updateData["status"] = model.Uploading
+	}
+	// 未完成且无进度：只更新数量，状态不变
+
+	// 执行更新
+	updateResult := model.DB.Model(&model.ZPtasks{}).Where("id = ?", task.ID).Updates(updateData)
+	if updateResult.Error != nil {
+		return false, updateResult.Error
+	}
+
+	return true, nil
+}
+
+// BatchTaskURLCounts 批量任务URL统计结果
+// 用于批量查询多个任务的URL统计信息
+type BatchTaskURLCounts struct {
+	TaskID       uint  `gorm:"column:task_id"`
+	SuccessCount int64 `gorm:"column:success_count"`
+	FailedCount  int64 `gorm:"column:failed_count"`
+	TotalCount   int64 `gorm:"column:total_count"`
+}
+
+// UpdateOneTaskBatch 批量更新上传任务进度
+// 性能优化：使用批量子查询，将N+1问题优化为固定3次数据库操作
+// batchSize: 每次处理的任务数量，默认为10
+func UpdateOneTaskBatch(batchSize int) (int, error) {
+	if batchSize <= 0 {
+		batchSize = 10
+	}
+
+	// Step 1: 查询所有status=1(扫描完成)或status=2(上传中)的任务，按id增序排序
+	var tasks []model.ZPtasks
+	queryResult := model.DB.Where("status IN ?", []int8{model.ScanCompleted, model.Uploading}).Order("id asc").Limit(batchSize).Find(&tasks)
+	if queryResult.Error != nil {
+		return 0, queryResult.Error
+	}
+
+	// 没有需要处理的任务
+	if len(tasks) == 0 {
+		return 0, nil
+	}
+
+	// 收集所有任务ID
+	taskIDs := make([]uint, len(tasks))
+	for i, task := range tasks {
+		taskIDs[i] = task.ID
+	}
+
+	// Step 2: 批量统计所有任务的URL数量（单次查询，使用GROUP BY）
+	var batchCounts []BatchTaskURLCounts
+	batchQuery := fmt.Sprintf(`
+		SELECT
+			task_id,
+			COALESCE(SUM(CASE WHEN status = %d THEN 1 ELSE 0 END), 0) as success_count,
+			COALESCE(SUM(CASE WHEN status = %d THEN 1 ELSE 0 END), 0) as failed_count,
+			COALESCE(SUM(CASE WHEN status IN (%d, %d) THEN 1 ELSE 0 END), 0) as total_count
+		FROM %s
+		WHERE task_id IN ?
+		GROUP BY task_id
+	`, model.URLSuccess, model.URLFailed, model.URLSuccess, model.URLFailed, model.ZPTaskUrls{}.TableName())
+
+	countResult := model.DB.Raw(batchQuery, taskIDs).Scan(&batchCounts)
+	if countResult.Error != nil {
+		return 0, countResult.Error
+	}
+
+	// 构建taskID到统计结果的映射，方便后续使用
+	countMap := make(map[uint]BatchTaskURLCounts, len(batchCounts))
+	for _, bc := range batchCounts {
+		countMap[bc.TaskID] = bc
+	}
+
+	// Step 3: 批量更新所有任务状态（使用CASE WHEN）
+	updatedAt := time.Now()
+
+	// 构建批量更新数据
+	type updateData struct {
+		TaskID      uint
+		SuccessNum  int64
+		FailedNum   int64
+		NewStatus   int8
+		NeedsStatus bool // 是否需要更新状态
+	}
+
+	var updates []updateData
+	for _, task := range tasks {
+		counts, exists := countMap[task.ID]
+		if !exists {
+			// 如果没有查询到统计数据，跳过
+			continue
+		}
+
+		isCompleted := counts.TotalCount == int64(task.TotalNum)
+		hasProgress := counts.SuccessCount > 0 || counts.FailedCount > 0
+
+		newStatus := task.Status
+		needsStatus := false
+
+		if isCompleted {
+			newStatus = model.UploadCompleted
+			needsStatus = true
+		} else if hasProgress && task.Status != model.Uploading {
+			newStatus = model.Uploading
+			needsStatus = true
+		}
+
+		if int64(task.SuccessNum) != counts.SuccessCount || int64(task.FailedNum) != counts.FailedCount || needsStatus {
+			updates = append(updates, updateData{
+				TaskID:      task.ID,
+				SuccessNum:  counts.SuccessCount,
+				FailedNum:   counts.FailedCount,
+				NewStatus:   newStatus,
+				NeedsStatus: needsStatus,
+			})
+		}
+	}
+
+	// 执行批量更新
+	if len(updates) > 0 {
+		// 使用事务确保数据一致性
+		err := model.DB.Transaction(func(tx *gorm.DB) error {
+			for _, u := range updates {
+				updateData := map[string]interface{}{
+					"success_num": u.SuccessNum,
+					"failed_num":  u.FailedNum,
+					"updated_at":  updatedAt,
+				}
+				if u.NeedsStatus {
+					updateData["status"] = u.NewStatus
+				}
+				if result := tx.Model(&model.ZPtasks{}).Where("id = ?", u.TaskID).Updates(updateData); result.Error != nil {
+					return result.Error
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return len(updates), nil
 }
