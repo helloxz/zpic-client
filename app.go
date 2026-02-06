@@ -52,6 +52,14 @@ func crontab() {
 	c.AddFunc("@every 1m", func() {
 		core.UploadTaskList()
 	})
+	// 每隔35s执行一次BatchUpload
+	c.AddFunc("@every 35s", func() {
+		core.BatchUpload()
+	})
+	// 每隔20s更新一次上传状态
+	c.AddFunc("@every 20s", func() {
+		core.UpdateOneTaskBatch(2)
+	})
 	// 这里使用select{}可以使主程序持续运行，否则主程序可能会结束，导致定时任务未能执行
 	// select {}
 }

@@ -1,12 +1,30 @@
-2026/02/05 13:16:50 不支持的文件类型：text/html，URL：https://www.baidu.com
-2026/02/05 13:16:50 URL下载失败，ID：1，错误信息：不支持的文件类型：text/html
-2026/02/05 13:16:51 不支持的文件类型：text/html; charset=utf-8，URL：https://blog.xiaoz.org
-2026/02/05 13:16:51 URL下载失败，ID：2，错误信息：不支持的文件类型：text/html; charset=utf-8
-2026/02/05 13:41:50 不支持的文件类型：text/html，URL：https://www.baidu.com
-2026/02/05 13:41:50 URL下载失败，ID：1，错误信息：不支持的文件类型：text/html
-2026/02/05 13:41:51 不支持的文件类型：text/html; charset=utf-8，URL：https://blog.xiaoz.org
-2026/02/05 13:41:51 URL下载失败，ID：2，错误信息：不支持的文件类型：text/html; charset=utf-8
-2026/02/05 15:17:10 不支持的文件类型：text/html; charset=utf-8，URL：http://210.16.181.174:8090/system/uint312ip1h59on
-2026/02/05 15:17:10 URL下载失败，ID：103，错误信息：不支持的文件类型：text/html; charset=utf-8
-2026/02/05 15:17:10 不支持的文件类型：text/html; charset=utf-8，URL：https://www.imgurl.org/i/4FJs6iC6
-2026/02/05 15:17:10 URL下载失败，ID：104，错误信息：不支持的文件类型：text/html; charset=utf-8
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:31:47 oxipng压缩失败: 
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:31:47 jpegoptim压缩失败: 
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 oxipng压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/oxipng: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:38:07 jpegoptim压缩失败: err=fork/exec /Users/xiaoz/MyProject/zpic-client/build/bin/zpic-client.app/Contents/MacOS/bin/darwin/jpegoptim: no such file or directory, output=
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/星云 星空 苹果MAC 4K壁纸_彼岸图网.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250202_201220.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250202_201013.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250214_103452.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250202_201225.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250202_201220的副本.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250202_201002.jpg
+2026/02/06 20:43:37 jpegoptim压缩失败: err=exit status 3, output=jpegoptim: invalid destination directory: /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp/IMG_20250202_201232.jpg
+2026/02/06 20:43:37 oxipng压缩失败: err=exit status 1, output=/Users/xiaoz/Pictures/test/2024_10_26_10_25_53.png: Failed to write to /var/folders/81/v4yf16kn4m96v89x3f1rzx2h0000gn/T/zpic-temp: Is a directory (os error 21)
+Files processed: 0/1   
+Input size: 0 bytes
+Output size: 0 bytes
+Total saved: 0 bytes (0.00%)
