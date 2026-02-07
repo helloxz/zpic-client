@@ -6,6 +6,7 @@ import { UpdateSetting, GetSetting } from '../../wailsjs/go/core/AppCore'
 import { core } from '../../wailsjs/go/models'
 import { useMessage } from 'naive-ui'
 import axios from 'axios'
+import { BrowserOpenURL } from "../../wailsjs/runtime/runtime"
 
 const message = useMessage()
 
@@ -121,6 +122,7 @@ watch(() => form.value.server, (newVal) => {
   handleServerChange(newVal)
 })
 
+
 const handleSave = async () => {
   try {
     await formRef.value.validate()
@@ -232,7 +234,7 @@ onMounted(() => {
         </NFormItem>
 
         <NAlert type="info" class="info-alert">
-          请根据所选服务器类型，在对应的图床网站上获取API Token。
+          请根据所选服务器类型，在对应的图床网站上获取API Token。如果您还没有账号，可前往 <a href="javascript:;" @click="BrowserOpenURL('https://www.imgurl.org/user/register')" title="ImgURL图床">ImgURL</a> 注册。
         </NAlert>
       </NForm>
 
@@ -245,14 +247,14 @@ onMounted(() => {
           </template>
           保存设置
         </NButton>
-        <NButton @click="handleReset" :loading="loading">
+        <!-- <NButton @click="handleReset" :loading="loading">
           <template #icon>
             <NIcon>
               <RefreshOutline />
             </NIcon>
           </template>
           重置
-        </NButton>
+        </NButton> -->
       </div>
     </NCard>
   </div>
@@ -289,6 +291,17 @@ onMounted(() => {
 .info-alert {
   margin-top: 8px;
   margin-bottom: 24px;
+}
+
+.info-alert a {
+  color: #4098fc;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.info-alert a:hover {
+  color: #1d77e5;
 }
 
 .action-buttons {
