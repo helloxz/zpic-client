@@ -196,8 +196,16 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		return
 	}
 
-	// 如果没有扫描到文件，直接返回
+	// 如果没有扫描到文件，直接将状态更新为完成
 	if len(fileInfos) == 0 {
+		// fmt.Println("到这里了吗？")
+		// 将任务状态更新为ScanCompleted
+		if updateResult := model.DB.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+			"status":     model.UploadCompleted,
+			"updated_at": time.Now(),
+		}); updateResult.Error != nil {
+			helper.WriteLog("ScanTaskURLS: 更新任务状态失败，任务ID: " + strconv.Itoa(int(taskID)) + "，错误: " + updateResult.Error.Error())
+		}
 		return
 	}
 
@@ -232,6 +240,19 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		var insertedCount int64
 		if countResult := tx.Model(&model.ZPTaskUrls{}).Where("task_id = ?", taskID).Count(&insertedCount); countResult.Error != nil {
 			return countResult.Error
+		}
+		// 如果插入的数量是0，说明存在重复，直接将任务状态更新为完成
+		if insertedCount == 0 {
+			//fmt.Println("到这里了吗？")
+			fmt.Println(taskID)
+			if updateResult := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+				"status":     model.UploadCompleted,
+				"updated_at": time.Now(),
+			}); updateResult.Error != nil {
+				//fmt.Println("更新错误？？？")
+				return updateResult.Error
+			}
+			return nil
 		}
 
 		// 更新任务状态为ScanCompleted=1，并更新TotalNum
@@ -773,6 +794,11 @@ func BatchUpload() {
 	for _, url := range urls {
 		u := url
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					results <- uploadResult{ID: u.ID, Success: false, Error: fmt.Sprintf("panic: %v", r)}
+				}
+			}()
 			r := processAndUpload(u)
 			results <- r
 		}()
@@ -781,6 +807,7 @@ func BatchUpload() {
 	var tempFiles []string
 	for i := 0; i < len(urls); i++ {
 		r := <-results
+		uploadResults = append(uploadResults, r)
 		if r.TempFilePath != "" {
 			tempFiles = append(tempFiles, r.TempFilePath)
 		}
@@ -794,34 +821,30 @@ func BatchUpload() {
 var uploadResults []uploadResult
 
 // batchUpdateResults 批量更新上传结果
-// 使用事务确保数据一致性
 func batchUpdateResults() {
-	err := model.DB.Transaction(func(tx *gorm.DB) error {
-		for _, r := range uploadResults {
-			updateData := map[string]interface{}{
-				"updated_at": time.Now(),
-			}
-
-			if r.Success {
-				updateData["imgid"] = r.ImgID
-				updateData["url"] = r.URL
-				updateData["image_width"] = r.ImageWidth
-				updateData["image_height"] = r.ImageHeight
-				updateData["real_file_size"] = r.RealFileSize
-				updateData["status"] = model.URLSuccess
-			} else {
-				updateData["status"] = model.URLFailed
-			}
-
-			if err := tx.Model(&model.ZPTaskUrls{}).Where("id = ?", r.ID).Updates(updateData); err != nil {
-				return err.Error
-			}
+	updatedCount := 0
+	for _, r := range uploadResults {
+		updateData := map[string]interface{}{
+			"updated_at": time.Now(),
 		}
-		return nil
-	})
 
-	if err != nil {
-		helper.WriteLog("BatchUpload: 批量更新失败：" + err.Error())
+		if r.Success {
+			updateData["imgid"] = r.ImgID
+			updateData["url"] = r.URL
+			updateData["image_width"] = r.ImageWidth
+			updateData["image_height"] = r.ImageHeight
+			updateData["real_file_size"] = r.RealFileSize
+			updateData["status"] = model.URLSuccess
+		} else {
+			updateData["status"] = model.URLFailed
+		}
+
+		result := model.DB.Model(&model.ZPTaskUrls{}).Where("id = ?", r.ID).Updates(updateData)
+		if result.Error != nil {
+			helper.WriteLog(fmt.Sprintf("BatchUpload: 更新失败 ID=%d, err=%v", r.ID, result.Error))
+		} else if result.RowsAffected > 0 {
+			updatedCount++
+		}
 	}
 
 	uploadResults = nil
@@ -844,7 +867,6 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 	}
 
 	if !exists {
-		helper.WriteLog("BatchUpload: 文件不存在，ID: " + strconv.Itoa(int(url.ID)))
 		return uploadResult{
 			ID:    url.ID,
 			Error: "文件不存在",
@@ -852,9 +874,7 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 	}
 
 	processedPath, err := processFile(filePath, url.FileName)
-	fmt.Println("processFile:" + processedPath)
 	if err != nil {
-		helper.WriteLog("BatchUpload: 处理文件失败，ID: " + strconv.Itoa(int(url.ID)) + "，错误：" + err.Error())
 		return uploadResult{
 			ID:    url.ID,
 			Error: err.Error(),
@@ -880,7 +900,6 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 		}
 	}
 
-	helper.WriteLog("BatchUpload: 上传失败，ID: " + strconv.Itoa(int(url.ID)))
 	return uploadResult{
 		ID:           url.ID,
 		Success:      false,
@@ -922,7 +941,6 @@ func compressJpeg(srcPath string, destPath string) (string, error) {
 	destDir := filepath.Dir(destPath)
 
 	cmd := exec.Command(optimizePath, "--max=80", "-s", "--all-progressive", srcPath, "-d", destDir)
-	fmt.Println("jpg目标路径：" + destPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		helper.WriteLog(fmt.Sprintf("jpegoptim压缩失败: err=%v, output=%s", err, string(output)))
@@ -941,7 +959,6 @@ func compressPng(srcPath string, destPath string) (string, error) {
 		optimizePath += ".exe"
 	}
 
-	// destDir := filepath.Dir(destPath)
 	cmd := exec.Command(optimizePath,
 		"-o", "3",
 		"--strip", "safe",
@@ -950,7 +967,6 @@ func compressPng(srcPath string, destPath string) (string, error) {
 		srcPath,
 	)
 	output, err := cmd.CombinedOutput()
-	fmt.Println("png目标路径：" + destPath)
 	if err != nil {
 		helper.WriteLog(fmt.Sprintf("oxipng压缩失败: err=%v, output=%s", err, string(output)))
 		return copyFile(srcPath, destPath)
@@ -1034,7 +1050,7 @@ func cleanupTempFiles(tempFiles []string) {
 			continue
 		}
 		if err := os.Remove(filePath); err != nil {
-			helper.WriteLog("清理临时文件失败: " + filePath + "，错误: " + err.Error())
+			helper.WriteLog(fmt.Sprintf("清理临时文件失败: %s, err=%v", filePath, err))
 		}
 	}
 }

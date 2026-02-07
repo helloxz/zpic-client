@@ -158,7 +158,7 @@ function createColumns(): DataTableColumns<TaskItem> {
       render(row) {
         const statusMap: Record<number, { type: 'default' | 'success' | 'error' | 'warning'; text: string }> = {
           0: { type: 'default', text: '待扫描' },
-          1: { type: 'success', text: '扫描完成' },
+          1: { type: 'warning', text: '等待上传' },
           2: { type: 'warning', text: '上传中' },
           3: { type: 'success', text: '上传完成' }
         }
