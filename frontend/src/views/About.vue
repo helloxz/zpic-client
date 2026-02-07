@@ -25,7 +25,7 @@ interface UpdateInfo {
 // 更新信息
 const updateInfo = ref<UpdateInfo>({
   latest: '1.0.0',
-  date: '2024-01-01',
+  date: '2026-02-07',
   downloadUrl: '#'
 })
 
@@ -40,13 +40,13 @@ interface Feature {
 const features: Feature[] = [
   {
     icon: CloudUploadOutline,
-    title: '多种上传方式',
-    description: '支持本地文件拖拽、URL导入、剪贴板粘贴等多种上传方式'
+    title: '扫描上传',
+    description: '扫描指定文件夹，一次性上传数千张图片。'
   },
   {
     icon: LinkOutline,
-    title: '多图床支持',
-    description: '兼容 SM.MS、ImgBB、Imgur 等主流图床服务'
+    title: '链接上传',
+    description: '支持粘贴图片链接，批量帮您转换新的图片链接。'
   },
   {
     icon: SettingsOutline,
@@ -91,8 +91,8 @@ const links: Link[] = [
   <div class="about">
     <!-- 页面标题区域 -->
     <div class="page-header">
-      <h1>关于 ZPIC</h1>
-      <p class="subtitle">一款简洁高效的图床上传客户端</p>
+      <h1>关于 ZPIC Client</h1>
+      <p class="subtitle">一款简洁高效的图片上传客户端，适合大批量图片上传需求。</p>
     </div>
 
     <!-- 应用信息卡片 -->
@@ -100,7 +100,7 @@ const links: Link[] = [
       <div class="app-info">
         <!-- 应用Logo -->
         <div class="app-logo">
-          <img src="../assets/images/logo-universal.png" alt="ZPIC Logo" />
+          <img src="../assets/images/logo.svg" alt="ZPIC Logo" />
         </div>
         <!-- 应用详细信息 -->
         <div class="app-details">
@@ -173,25 +173,21 @@ const links: Link[] = [
       </div>
     </div>
 
-    <!-- 版权信息 -->
-    <div class="copyright">
-      <p>© 2024 ZPIC Client. All rights reserved.</p>
-      <p class="tech-stack">Built with Wails + Vue 3 + Naive UI</p>
-    </div>
+    
   </div>
 </template>
 
 <style scoped>
 /* 关于页面容器 */
 .about {
-  padding: 32px;
+  padding: 18px;
   max-width: 900px;
   margin: 0 auto;
 }
 
 /* 页面标题区域 */
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: 18px;
 }
 
 .page-header h1 {

@@ -32,5 +32,7 @@ func (ac *AppCore) UpdateSetting(data SettingData) bool {
 	if err != nil {
 		return false
 	}
+	// 重置client
+	resetClient()
 	return true
 }

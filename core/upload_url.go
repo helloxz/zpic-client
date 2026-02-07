@@ -270,7 +270,7 @@ func delTempFile(filePath string) {
 // 下载图片到本地
 func DownloadURL(urlStr string) (bool, string) {
 	httpProxy := viper.GetString("http_proxy")
-	tempDir := "data/temp/"
+	tempDir := getTempDir()
 	client := resty.New().SetTimeout(60 * time.Second)
 	if httpProxy != "" {
 		client.SetProxy(httpProxy)

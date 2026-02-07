@@ -162,8 +162,8 @@ function createColumns(): DataTableColumns<UrlItem> {
         const statusMap: Record<number, { type: 'default' | 'success' | 'error' | 'warning'; text: string }> = {
           0: { type: 'default', text: '未开始' },
           1: { type: 'warning', text: '上传中' },
-          2: { type: 'success', text: '已完成' },
-          3: { type: 'error', text: '上传失败' }
+          2: { type: 'success', text: '完成' },
+          3: { type: 'error', text: '失败' }
         }
         const config = statusMap[row.status] || { type: 'default', text: '未知' }
         return h(NTag, { type: config.type, size: 'small' }, () => config.text)
@@ -420,12 +420,12 @@ onBeforeUnmount(() => {
     <NCard class="content-card">
       <div class="toolbar">
         <div class="toolbar-actions">
-          <NButton @click="showAddDialog">
+          <NButton @click="showAddDialog" type="primary">
             <template #icon><NIcon><AddOutline /></NIcon></template>
             添加URL
           </NButton>
 
-          <NDropdown trigger="hover" :options="statusOptions" @select="updateSelectedStatus">
+          <NDropdown placement="bottom-start" trigger="hover" :options="statusOptions" @select="updateSelectedStatus">
             <NButton>
               <template #icon><NIcon><SyncOutline /></NIcon></template>
               更改状态
@@ -449,7 +449,7 @@ onBeforeUnmount(() => {
               :show-button="false"
             />
             <span class="export-label">条</span>
-            <NButton @click="handleExport" :loading="exporting">
+            <NButton type="primary" strong secondary @click="handleExport" :loading="exporting">
               <template #icon><NIcon><DownloadOutline /></NIcon></template>
               导出表格
             </NButton>

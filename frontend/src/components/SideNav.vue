@@ -8,7 +8,8 @@ import {
   SettingsOutline,
   InformationCircleOutline,
   ChevronBackOutline,
-  ChevronForwardOutline
+  ChevronForwardOutline,
+  DocumentTextOutline
 } from '@vicons/ionicons5'
 
 // 路由 hooks
@@ -41,6 +42,11 @@ const menuOptions = [
     icon: renderIcon(SettingsOutline)
   },
   {
+    label: '日志',
+    key: 'logs',
+    icon: renderIcon(DocumentTextOutline)
+  },
+  {
     label: '关于',
     key: 'about',
     icon: renderIcon(InformationCircleOutline)
@@ -58,10 +64,10 @@ function handleMenuUpdate(value: string) {
     <!-- 应用Logo和标题区域 -->
     <div class="nav-header">
       <div class="logo">
-        <img src="../assets/images/logo-universal.png" alt="Logo" />
+        <img src="../assets/images/image_new.png" alt="Logo" />
       </div>
       <transition name="fade">
-        <h2 v-if="!collapsed" class="app-title">ZPIC 图床</h2>
+        <h2 v-if="!collapsed" class="app-title">图床客户端</h2>
       </transition>
     </div>
 
@@ -110,6 +116,11 @@ function handleMenuUpdate(value: string) {
   min-height: 72px;
 }
 
+.logo{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .logo img {
   width: 32px;
   height: 32px;

@@ -10,9 +10,13 @@ export function DeleteTasks(arg1:core.DeleteTasksParams):Promise<core.ResData>;
 
 export function DeleteUrlsByIds(arg1:core.IdsForm):Promise<core.ResData>;
 
+export function ExportTaskURLS(arg1:number):Promise<core.ResData>;
+
 export function ExportUrlsToCsv(arg1:core.ExportParams):Promise<core.ResData>;
 
 export function GetAlbumList():Promise<core.ResData>;
+
+export function GetRecentLogs():Promise<core.ResData>;
 
 export function GetScanList(arg1:core.ScanListParams):Promise<core.ResData>;
 

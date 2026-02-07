@@ -285,11 +285,6 @@ func getBinDir() string {
 }
 
 // getTempDir 获取临时目录的绝对路径
-// 使用系统临时目录，避免程序目录权限问题
-func getTempDir() string {
-	tempDir := os.TempDir()
-	return filepath.Join(tempDir, "zpic-temp")
-}
 
 // copyFile 复制文件到目标路径
 func copyFile(srcPath string, destPath string) (string, error) {

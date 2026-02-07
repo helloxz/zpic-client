@@ -161,6 +161,8 @@ const handleSave = async () => {
       http_proxy: form.value.httpProxy
     })
     if (success) {
+      // 清理相册的sessionStorage缓存
+      sessionStorage.removeItem('albumListCache')
       message.success('设置已保存')
     } else {
       message.error('设置保存失败')
@@ -258,13 +260,13 @@ onMounted(() => {
 
 <style scoped>
 .settings {
-  padding: 32px;
+  padding: 18px;
   max-width: 100%;
   margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: 18px;
 }
 
 .page-header h1 {

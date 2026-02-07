@@ -37,6 +37,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    // 日志页面
+    path: '/logs',
+    name: 'logs',
+    component: () => import('../views/Log.vue'),
+    meta: {
+      title: '日志',
+      icon: 'logs'
+    }
+  },
+  {
     // 关于页面
     path: '/about',
     name: 'about',

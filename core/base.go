@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 	"zpic-client/helper"
@@ -84,6 +86,13 @@ var (
 	uploadClient *resty.Client
 	uploadOnce   sync.Once
 )
+
+// 重置client
+func resetClient() bool {
+	uploadOnce = sync.Once{}
+	uploadClient = nil
+	return true
+}
 
 // getUploadClient 返回上传专用的 resty.Client 单例，避免多次调用重复创建。
 func getUploadClient() *resty.Client {
@@ -206,4 +215,10 @@ func (ac *AppCore) GetAlbumList() ResData {
 		Msg:    msg,
 		Data:   albumList,
 	}
+}
+
+// 使用系统临时目录，避免程序目录权限问题
+func getTempDir() string {
+	tempDir := os.TempDir()
+	return filepath.Join(tempDir, "zpic-temp")
 }

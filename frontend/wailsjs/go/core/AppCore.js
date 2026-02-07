@@ -18,12 +18,20 @@ export function DeleteUrlsByIds(arg1) {
   return window['go']['core']['AppCore']['DeleteUrlsByIds'](arg1);
 }
 
+export function ExportTaskURLS(arg1) {
+  return window['go']['core']['AppCore']['ExportTaskURLS'](arg1);
+}
+
 export function ExportUrlsToCsv(arg1) {
   return window['go']['core']['AppCore']['ExportUrlsToCsv'](arg1);
 }
 
 export function GetAlbumList() {
   return window['go']['core']['AppCore']['GetAlbumList']();
+}
+
+export function GetRecentLogs() {
+  return window['go']['core']['AppCore']['GetRecentLogs']();
 }
 
 export function GetScanList(arg1) {

@@ -17,9 +17,10 @@ import {
 import {
   ScanOutline,
   TrashBinOutline,
-  RefreshOutline
+  RefreshOutline,
+  DownloadOutline
 } from '@vicons/ionicons5'
-import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory, RetryTask } from '../../wailsjs/go/core/AppCore'
+import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory, RetryTask, ExportTaskURLS } from '../../wailsjs/go/core/AppCore'
 
 interface TaskItem {
   id: number
@@ -42,7 +43,7 @@ const pagination = reactive<PaginationProps>({
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
+  pageSizes: [10, 20],
   onChange: (p) => {
     pagination.page = p
     fetchData()
@@ -125,22 +126,22 @@ function createColumns(): DataTableColumns<TaskItem> {
     {
       title: '成功',
       key: 'success_num',
-      width: 80
+      width: 68
     },
     {
       title: '失败',
       key: 'failed_num',
-      width: 80
+      width: 68
     },
     {
       title: '总数',
       key: 'total_num',
-      width: 80
+      width: 68
     },
     {
       title: '创建时间',
       key: 'created_at',
-      width: 120,
+      width: 130,
       render(row) {
         return formatDateTimeToSecond(row.created_at)
       }
@@ -148,7 +149,7 @@ function createColumns(): DataTableColumns<TaskItem> {
     {
       title: '更新时间',
       key: 'updated_at',
-      width: 120,
+      width: 130,
       render(row) {
         return formatDateTimeToSecond(row.updated_at)
       }
@@ -161,9 +162,9 @@ function createColumns(): DataTableColumns<TaskItem> {
       render(row) {
         const statusMap: Record<number, { type: 'default' | 'success' | 'error' | 'warning'; text: string }> = {
           0: { type: 'default', text: '待扫描' },
-          1: { type: 'warning', text: '等待上传' },
+          1: { type: 'warning', text: '等待中' },
           2: { type: 'warning', text: '上传中' },
-          3: { type: 'success', text: '上传完成' }
+          3: { type: 'success', text: '完成' }
         }
         const config = statusMap[row.status] || { type: 'default', text: '未知' }
         return h(NTag, { type: config.type, size: 'small' }, () => config.text)
@@ -172,25 +173,44 @@ function createColumns(): DataTableColumns<TaskItem> {
     {
       title: '操作',
       key: 'actions',
-      width: 60,
+      width: 90,
       fixed: 'right',
       render(row) {
         const canRetry = row.status === 3 && row.failed_num > 0
-        return h(NTooltip, { trigger: 'hover' }, {
-          trigger: () =>
-            h(
-              NButton,
-              {
-                size: 'small',
-                quaternary: true,
-                type: 'warning',
-                disabled: !canRetry,
-                onClick: () => handleRetryFailed(row)
-              },
-              { icon: () => h(NIcon, null, () => h(RefreshOutline)) }
-            ),
-          default: () => canRetry ? '失败重试' : (row.status !== 3 ? '任务未完成' : '无失败文件')
-        })
+        const canExport = row.status === 3
+
+        return h('div', { style: { display: 'flex', gap: '4px' } }, [
+          h(NTooltip, { trigger: 'hover' }, {
+            trigger: () =>
+              h(
+                NButton,
+                {
+                  size: 'small',
+                  quaternary: true,
+                  type: 'warning',
+                  disabled: !canRetry,
+                  onClick: () => handleRetryFailed(row)
+                },
+                { icon: () => h(NIcon, null, () => h(RefreshOutline)) }
+              ),
+            default: () => canRetry ? '失败重试' : (row.status !== 3 ? '任务未完成' : '无失败文件')
+          }),
+          h(NTooltip, { trigger: 'hover' }, {
+            trigger: () =>
+              h(
+                NButton,
+                {
+                  size: 'small',
+                  quaternary: true,
+                  type: 'info',
+                  disabled: !canExport,
+                  onClick: () => handleExportTask(row)
+                },
+                { icon: () => h(NIcon, null, () => h(DownloadOutline)) }
+              ),
+            default: () => row.status === 3 ? '导出表格' : '任务未完成'
+          })
+        ])
       }
     }
   ]
@@ -263,6 +283,20 @@ const handleRetryFailed = async (row: TaskItem) => {
   } catch (err) {
     console.error('重试失败:', err)
     message.error(err instanceof Error ? err.message : '重试失败，请稍后重试')
+  }
+}
+
+const handleExportTask = async (row: TaskItem) => {
+  try {
+    const res = await ExportTaskURLS(row.id)
+    if (res.status) {
+      message.success(res.msg || '导出成功')
+    } else {
+      message.error(res.msg || '导出失败')
+    }
+  } catch (err) {
+    console.error('导出失败:', err)
+    message.error(err instanceof Error ? err.message : '导出失败，请稍后重试')
   }
 }
 
