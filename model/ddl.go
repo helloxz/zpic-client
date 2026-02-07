@@ -68,11 +68,9 @@ const (
 // 任务表里面的URL
 type ZPTaskUrls struct {
 	ID     uint `gorm:"primaryKey;autoIncrement;not null" json:"id"`
-	TaskID uint `gorm:"column:task_id;not null;index:idx_task_id" json:"task_id"` // 任务ID
+	TaskID uint `gorm:"column:task_id;not null;index:idx_task_id;index:idx_task_id_status,priority:1" json:"task_id"` // 任务ID
 	// 原始文件路径
 	OriginPath string `gorm:"column:origin_path;not null" json:"origin_path"`
-	// 临时文件路径，允许为空
-	TempPath string `gorm:"column:temp_path" json:"temp_path"`
 	// 后端返回的图片ID
 	Imgid string `gorm:"column:imgid" json:"imgid"`
 	// 上传后得到的URL，允许为空
@@ -89,7 +87,7 @@ type ZPTaskUrls struct {
 	FileHash  string    `gorm:"column:file_hash;not null;uniqueIndex" json:"file_hash"`
 	CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
-	Status    int8      `gorm:"column:status;default:0;not null;index:idx_task_url_status" json:"status"` // 任务状态
+	Status    int8      `gorm:"column:status;default:0;not null;index:idx_task_url_status;index:idx_task_id_status,priority:2" json:"status"` // 任务状态
 }
 
 func (ZPTaskUrls) TableName() string {

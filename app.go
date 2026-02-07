@@ -9,6 +9,7 @@ import (
 	"zpic-client/core"
 
 	"github.com/robfig/cron/v3"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct 应用结构体
@@ -33,7 +34,7 @@ func (a *App) startup(ctx context.Context) {
 	model.InitDB()
 	// 启动定时任务
 	go func() {
-		crontab()
+		crontab(a)
 	}()
 
 }
@@ -43,14 +44,15 @@ func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
 
-func crontab() {
+func crontab(a *App) {
 	// 创建一个新的cron管理器
 	c := cron.New(cron.WithSeconds())
 	c.Start()
 	// 这里写各种定时任务
 	// 每1分钟执行一次URL上传任务
-	c.AddFunc("@every 1m", func() {
+	c.AddFunc("@every 40s", func() {
 		core.UploadTaskList()
+		runtime.EventsEmit(a.ctx, "refresh_url_upload_list")
 	})
 	// 每隔35s执行一次BatchUpload
 	c.AddFunc("@every 35s", func() {
@@ -59,6 +61,8 @@ func crontab() {
 	// 每隔20s更新一次上传状态
 	c.AddFunc("@every 20s", func() {
 		core.UpdateOneTaskBatch(2)
+		// 推送事件
+		runtime.EventsEmit(a.ctx, "refresh_task")
 	})
 	// 这里使用select{}可以使主程序持续运行，否则主程序可能会结束，导致定时任务未能执行
 	// select {}

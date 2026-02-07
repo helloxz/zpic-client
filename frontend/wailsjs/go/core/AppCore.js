@@ -50,6 +50,10 @@ export function GetUrlsList(arg1) {
   return window['go']['core']['AppCore']['GetUrlsList'](arg1);
 }
 
+export function RetryTask(arg1) {
+  return window['go']['core']['AppCore']['RetryTask'](arg1);
+}
+
 export function SelectScanDirectory() {
   return window['go']['core']['AppCore']['SelectScanDirectory']();
 }

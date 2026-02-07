@@ -207,3 +207,5 @@ Total saved: 0 bytes (0.00%)
 2026/02/06 21:11:25 processAndUpload: 上传完成 ID=18，Success=true
 2026/02/06 21:11:25 processAndUpload: 上传完成 ID=14，Success=true
 2026/02/06 21:11:25 processAndUpload: 上传完成 ID=12，Success=true
+2026/02/07 11:21:22 https://hodlai.fun/logo.jpg无法获取文件大小
+2026/02/07 11:21:22 URL下载失败，ID：109，错误信息：无法获取文件大小

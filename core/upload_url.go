@@ -187,7 +187,7 @@ type taskData struct {
 
 // 任务列表
 func UploadTaskList() {
-	// 根据ID增序排序，查询出status为0的任务，限制10条，然后并发上传
+	// 根据ID增序排序，查询出status为0的任务，限制30条，然后并发上传
 	limit := 30
 	var tasks []taskData
 	result := model.DB.Model(&model.ZPurls{}).Select("id, album_id, origin_url").Where("status = ?", model.UploadStatusPending).Order("id asc").Limit(limit).Find(&tasks)

@@ -1,0 +1,13 @@
+package core
+
+import "github.com/wailsapp/wails/v2/pkg/runtime"
+
+// 更新任务列表事件
+func (ac *AppCore) UpdateTaskListEvent() {
+	runtime.EventsEmit(ac.ctx, "refresh_task")
+}
+
+// 更新URL上传任务列表事件
+func (ac *AppCore) UpdateURLTaskListEvent() {
+	runtime.EventsEmit(ac.ctx, "refresh_url_upload_list")
+}

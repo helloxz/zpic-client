@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, h, reactive } from 'vue'
 import type { DataTableColumns, PaginationProps } from 'naive-ui'
+// import { EventsOn, EventsOff } from '@wailsapp/runtime'
+import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime"
+
 import {
   NCard,
   NButton,
@@ -16,7 +19,7 @@ import {
   TrashBinOutline,
   RefreshOutline
 } from '@vicons/ionicons5'
-import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory } from '../../wailsjs/go/core/AppCore'
+import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory, RetryTask } from '../../wailsjs/go/core/AppCore'
 
 interface TaskItem {
   id: number
@@ -172,6 +175,7 @@ function createColumns(): DataTableColumns<TaskItem> {
       width: 60,
       fixed: 'right',
       render(row) {
+        const canRetry = row.status === 3 && row.failed_num > 0
         return h(NTooltip, { trigger: 'hover' }, {
           trigger: () =>
             h(
@@ -180,11 +184,12 @@ function createColumns(): DataTableColumns<TaskItem> {
                 size: 'small',
                 quaternary: true,
                 type: 'warning',
+                disabled: !canRetry,
                 onClick: () => handleRetryFailed(row)
               },
               { icon: () => h(NIcon, null, () => h(RefreshOutline)) }
             ),
-          default: () => '失败重试'
+          default: () => canRetry ? '失败重试' : (row.status !== 3 ? '任务未完成' : '无失败文件')
         })
       }
     }
@@ -246,23 +251,38 @@ const handleDeleteConfirm = async () => {
   }
 }
 
-const handleRetryFailed = (row: TaskItem) => {
-  console.log('失败重试', row.id)
+const handleRetryFailed = async (row: TaskItem) => {
+  try {
+    const res = await RetryTask(row.id)
+    if (res.status) {
+      message.success(res.msg || '重试成功')
+      fetchData()
+    } else {
+      message.error(res.msg || '重试失败')
+    }
+  } catch (err) {
+    console.error('重试失败:', err)
+    message.error(err instanceof Error ? err.message : '重试失败，请稍后重试')
+  }
 }
 
 onMounted(() => {
   fetchData()
   if (refreshTimer.value !== null) return
-  refreshTimer.value = window.setInterval(() => {
-    fetchData()
-  }, 30000)
+  // refreshTimer.value = window.setInterval(() => {
+  //   fetchData()
+  // }, 30000)
+  // 改为事件监听
+  EventsOn('refresh_task', fetchData)
+
 })
 
 onBeforeUnmount(() => {
-  if (refreshTimer.value !== null) {
-    window.clearInterval(refreshTimer.value)
-    refreshTimer.value = null
-  }
+  // if (refreshTimer.value !== null) {
+  //   window.clearInterval(refreshTimer.value)
+  //   refreshTimer.value = null
+  // }
+  EventsOff('refresh_task')
 })
 </script>
 

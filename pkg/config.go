@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"zpic-client/helper"
 
@@ -11,8 +12,11 @@ import (
 
 // 初始化配置文件
 func InitConfig() {
+	// 获取系统临时目录
+	tempDir := os.TempDir()
+	tempDir = filepath.Join(tempDir, "zpic-temp")
 	// 创建必要的目录
-	dirs := []string{"data", "data/config", "data/db", "data/logs", "data/temp"}
+	dirs := []string{"data", "data/config", "data/db", "data/logs", "data/temp", tempDir}
 	for _, dir := range dirs {
 		err := helper.CreateDir(dir)
 		if err != nil {

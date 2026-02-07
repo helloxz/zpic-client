@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, h, reactive, computed } from 'vue'
 import type { DataTableColumns, PaginationProps } from 'naive-ui'
+import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime"
 import {
   NCard,
   NButton,
@@ -222,7 +223,7 @@ const copyUrl = (url: string) => {
 }
 
 const fetchData = async () => {
-  loading.value = true
+  // loading.value = true
   try {
     const res = await GetUrlsList({ page: pagination.page as number, limit: pagination.pageSize as number })
     if (res.status && res.data) {
@@ -398,17 +399,19 @@ const refreshTimer = ref<number | null>(null)
 onMounted(() => {
   baseStore.fetchAlbumList()
   fetchData()
-  if (refreshTimer.value !== null) return
-  refreshTimer.value = window.setInterval(() => {
-    fetchData()
-  }, 20000)
+  // if (refreshTimer.value !== null) return
+  // refreshTimer.value = window.setInterval(() => {
+  //   fetchData()
+  // }, 20000)
+  EventsOn('refresh_url_upload_list', fetchData)
 })
 
 onBeforeUnmount(() => {
-  if (refreshTimer.value !== null) {
-    window.clearInterval(refreshTimer.value)
-    refreshTimer.value = null
-  }
+  // if (refreshTimer.value !== null) {
+  //   window.clearInterval(refreshTimer.value)
+  //   refreshTimer.value = null
+  // }
+  EventsOff('refresh_url_upload_list')
 })
 </script>
 
