@@ -1,7 +1,7 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "zpic-client",
-  "outputfilename": "zpic-client",
+  "name": "Zpic Client",
+  "outputfilename": "Zpic Client",
   "frontend:install": "pnpm install",
   "frontend:build": "pnpm run build",
   "frontend:dev:watcher": "pnpm run dev",

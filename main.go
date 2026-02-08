@@ -20,7 +20,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "Zpic Client Beta",
+		Title:     "Zpic Client",
 		Width:     1200,
 		Height:    750,
 		MinWidth:  1200,

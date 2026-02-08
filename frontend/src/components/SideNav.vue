@@ -70,7 +70,7 @@ function handleMenuUpdate(value: string) {
     <!-- 应用Logo和标题区域 -->
     <div class="nav-header">
       <div class="logo">
-        <img src="../assets/images/image_new.png" alt="Logo" />
+        <img src="../assets/images/appicon.png" alt="Logo" />
       </div>
       <transition name="fade">
         <h2 v-if="!collapsed" class="app-title">图床客户端</h2>

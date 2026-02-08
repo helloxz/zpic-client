@@ -6,6 +6,10 @@ export function GetMessage() {
   return window['go']['main']['App']['GetMessage']();
 }
 
+export function GetRunDir(arg1) {
+  return window['go']['main']['App']['GetRunDir'](arg1);
+}
+
 export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }

@@ -37,7 +37,7 @@ const getAppInfos = async () => {
   const result = await GetAppInfo()
   if(result.status){
     appInfos.value = result.data
-    console.log("获取应用信息成功:", appInfos.value)
+    // console.log("获取应用信息成功:", appInfos.value)
   }
 }
 
@@ -191,7 +191,7 @@ onMounted(() => {
       <div class="app-info">
         <!-- 应用Logo -->
         <div class="app-logo">
-          <img src="../assets/images/logo.svg" alt="ZPIC Logo" />
+          <img src="../assets/images/appicon.png" alt="ZPIC Logo" />
         </div>
         <!-- 应用详细信息 -->
         <div class="app-details">
@@ -303,10 +303,10 @@ onMounted(() => {
 }
 
 .app-logo img {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
 }
 
 .app-details {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 // 记录日志到文件
@@ -58,4 +60,19 @@ func CreateDir(path string) error {
 		return err // Return other potential errors
 	}
 	return nil // If the directory already exists, do nothing
+}
+
+// 获取运行目录
+func GetRunDir() string {
+	runDir, _ := os.Executable()
+	// 判断路径中是否包含：build，如果包含，则说明是开发环境，返回项目根目录
+	if strings.Contains(runDir, "build") {
+		runDir, _ := os.Getwd()
+		// fmt.Println("开发环境")
+		return runDir
+	} else {
+		// fmt.Println("生产环境")
+		// 去掉可执行文件的文件名，返回目录
+		return filepath.Dir(runDir)
+	}
 }

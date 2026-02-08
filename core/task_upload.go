@@ -253,34 +253,16 @@ func compressPng(srcPath string, destPath string) (string, error) {
 // getBinDir 获取压缩工具所在目录的绝对路径
 // 优先使用当前工作目录（wails dev 模式），失败后使用可执行文件目录
 func getBinDir() string {
-	// wails dev 模式下，os.Getwd() 返回项目目录
-	cwd, err := os.Getwd()
-	if err == nil {
-		binDir := filepath.Join(cwd, "bin")
-		if _, err := os.Stat(binDir); err == nil {
-			if runtime.GOOS == "windows" {
-				return filepath.Join(binDir, "windows")
-			} else if runtime.GOOS == "darwin" {
-				return filepath.Join(binDir, "darwin")
-			}
-			return binDir
-		}
-	}
-
-	// 打包模式下使用可执行文件目录
-	execPath, err := os.Executable()
-	if err != nil {
-		execPath, _ = os.Getwd()
-	}
-	baseDir := filepath.Dir(execPath)
-
-	binDir := filepath.Join(baseDir, "bin")
+	// 获取运行目录
+	cwd := helper.GetRunDir()
+	binDir := filepath.Join(cwd, "bin")
 	if runtime.GOOS == "windows" {
-		binDir = filepath.Join(binDir, "windows")
+		return filepath.Join(binDir, "windows")
 	} else if runtime.GOOS == "darwin" {
-		binDir = filepath.Join(binDir, "darwin")
+		return filepath.Join(binDir, "darwin")
+	} else if runtime.GOOS == "linux" {
+		return filepath.Join(binDir, "linux")
 	}
-
 	return binDir
 }
 

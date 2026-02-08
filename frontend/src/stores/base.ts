@@ -95,7 +95,7 @@ export const useBaseStore = defineStore('base', {
             }
             // 如果存在startupPage，且不为空
             if (startupPage && startupPage.trim() !== '') {
-                console.log('Startup page from storage:', startupPage)
+                // console.log('Startup page from storage:', startupPage)
                 // 跳转到startupPage
                 router.replace(startupPage)
                 return

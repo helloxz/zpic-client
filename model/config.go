@@ -19,7 +19,9 @@ var DB *gorm.DB
 func InitDB() {
 	var err error
 	//如果数据库文件不存在，会自动创建
-	dsn := "data/db/zpic.db3"
+	runDir := helper.GetRunDir()
+	dsn := runDir + "/data/db/zpic.db3"
+	// dsn = fmt.Sprintf("%s/%s", runDir, dsn)
 	DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger:                 logger.Default.LogMode(logger.Error),
 		SkipDefaultTransaction: true, // 减少写入开销（对 SQLite 通常更快）
