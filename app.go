@@ -3,11 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
+	goruntime "runtime"
+	"strings"
 	"zpic-client/model"
 	"zpic-client/pkg"
 
 	"zpic-client/core"
+	"zpic-client/helper"
 
 	"github.com/robfig/cron/v3"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -31,6 +37,12 @@ func (a *App) startup(ctx context.Context) {
 	core.SetCtx(ctx)
 	// 初始化配置文件
 	pkg.LoadConfig()
+	// 拷贝嵌入的bin文件到运行目录
+	error := CopyEmbeddedBin()
+	if error != nil {
+		fmt.Printf("复制嵌入的bin文件失败: %v\n", error)
+		os.Exit(1)
+	}
 	// 初始化数据库链接
 	model.InitDB()
 	// 启动定时任务
@@ -89,4 +101,54 @@ func (a *App) GetRunDir(ctx context.Context) string {
 		runDir, _ := os.Executable()
 		return runDir
 	}
+}
+
+func CopyEmbeddedBin() error {
+	runDir := helper.GetRunDir()
+	targetBinDir := filepath.Join(runDir, "bin")
+
+	var srcDir string
+	switch goruntime.GOOS {
+	case "windows":
+		srcDir = "bin/windows"
+	case "linux":
+		srcDir = "bin/linux"
+	case "darwin":
+		srcDir = "bin/darwin"
+	default:
+		return nil
+	}
+
+	destSubDir := filepath.Join(targetBinDir, goruntime.GOOS)
+	if _, err := os.Stat(destSubDir); err == nil {
+		return nil
+	}
+
+	return fs.WalkDir(embeddedBin, srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, _ := strings.CutPrefix(path, srcDir)
+		targetPath := filepath.Join(destSubDir, relPath)
+
+		if d.IsDir() {
+			return os.MkdirAll(targetPath, 0755)
+		}
+
+		srcFile, err := embeddedBin.Open(path)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		destFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+		if err != nil {
+			return err
+		}
+		defer destFile.Close()
+
+		_, err = io.Copy(destFile, srcFile)
+		return err
+	})
 }
