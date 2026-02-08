@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, h,onMounted } from 'vue'
-import { NCard, NIcon, NTag } from 'naive-ui'
+import { NCard, NIcon, NTag, useNotification, NDialogProvider, useDialog } from 'naive-ui'
 import type { Component } from 'vue'
 import { BrowserOpenURL } from "../../wailsjs/runtime/runtime"
 import { GetAppInfo } from '../../wailsjs/go/core/AppCore'
+import axios from 'axios'
 import {
   CloudUploadOutline,
   LinkOutline,
@@ -12,8 +13,12 @@ import {
   CheckmarkCircleOutline,
   LogoGithub,
   OpenOutline,
-  GlobeOutline
+  GlobeOutline,
+  RefreshOutline
 } from '@vicons/ionicons5'
+
+const notification = useNotification()
+const dialog = useDialog()
 
 
 const appInfos = ref({
@@ -105,6 +110,69 @@ const links: Link[] = [
   }
 ]
 
+const checkingUpdate = ref(false)
+
+const compareVersions = (v1: string, v2: string): number => {
+  const parts1 = v1.split('.').map(Number)
+  const parts2 = v2.split('.').map(Number)
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0
+    const p2 = parts2[i] || 0
+    if (p1 !== p2) {
+      return p1 - p2
+    }
+  }
+  return 0
+}
+
+const checkUpdate = async () => {
+  if (checkingUpdate.value) return
+  checkingUpdate.value = true
+
+  try {
+    const formData = new URLSearchParams()
+    formData.append('path', '/UniBin/zpic-client')
+    formData.append('type', 'public')
+
+    const response = await axios.post('https://soft.xiaoz.org/api/filelist', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+
+    if (response.data.code === 200 && response.data.data && response.data.data.length > 0) {
+      const versions = response.data.data.map((item: any) => item.name)
+      const remoteMaxVersion = versions.reduce((max: string, curr: string) => {
+        return compareVersions(curr, max) > 0 ? curr : max
+      }, '0.0.0')
+
+      const localVersion = appInfos.value.version
+
+      if (compareVersions(remoteMaxVersion, localVersion) <= 0) {
+        notification.success({
+          content: '当前版本已是最新',
+          duration: 3000
+        })
+      } else {
+        dialog.info({
+          title: '发现新版本',
+          content: `检测到 ${remoteMaxVersion} 版本`,
+          positiveText: '前往下载',
+          negativeText: '取消',
+          onPositiveClick: () => {
+            BrowserOpenURL(`http://soft.xiaoz.org/#/UniBin/zpic-client/${remoteMaxVersion}/${appInfos.value.os}`)
+          }
+        })
+      }
+    }
+  } catch (error) {
+    notification.error({
+      content: '检查更新失败，请稍后重试',
+      duration: 3000
+    })
+  } finally {
+    checkingUpdate.value = false
+  }
+}
+
 onMounted(() => {
   getAppInfos()
 })
@@ -130,14 +198,11 @@ onMounted(() => {
           <h2 class="app-name">ZPIC 图床客户端</h2>
           <p class="app-version">
             版本 <n-tag size="small" type="info">{{ appInfos.version }}</n-tag>
-            <n-tag v-if="updateInfo.latest === appInfos.version" type="success" size="small">
+            <n-button size="small" quaternary circle :loading="checkingUpdate" @click="checkUpdate">
               <template #icon>
-                <n-icon>
-                  <CheckmarkCircleOutline />
-                </n-icon>
+                <n-icon><RefreshOutline /></n-icon>
               </template>
-              最新
-            </n-tag>
+            </n-button>
           </p>
           <p class="app-desc">让图片上传更简单、更高效</p>
         </div>

@@ -28,11 +28,15 @@ onMounted(() => {
       <!-- 路由视图：根据URL显示对应的页面组件 -->
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
-          <n-message-provider>
-            <n-dialog-provider>
-              <component :is="Component" />
-            </n-dialog-provider>
-          </n-message-provider>
+          <div>
+            <n-message-provider>
+              <n-notification-provider>
+              <n-dialog-provider>
+                <component :is="Component" />
+              </n-dialog-provider>
+              </n-notification-provider>
+            </n-message-provider>
+          </div>
         </transition>
       </router-view>
     </main>

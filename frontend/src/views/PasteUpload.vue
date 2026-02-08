@@ -11,6 +11,10 @@ import {
 import req, { toForm } from '../utils/req'
 import { useBaseStore } from '../stores/base'
 import { ClipboardSetText } from "../../wailsjs/runtime/runtime"
+import { useI18n } from 'vue-i18n'
+const { t, locale } = useI18n()
+
+
 
 interface UploadResult {
   imgid: string
@@ -203,7 +207,7 @@ const uploadFile = async (file: File) => {
       message.success('上传成功')
       autoCopy(response.data.data.url, response.data.data.filename)
     } else {
-      message.error(response.data?.msg || '上传失败')
+      message.error(t(response.data?.msg) || '上传失败')
     }
   } catch (error: any) {
     console.error('上传失败:', error)
@@ -374,13 +378,13 @@ onBeforeUnmount(() => {
         <div class="history-header">
           <div class="history-title-wrapper">
             <span class="history-title">上传记录</span>
-            <NTooltip trigger="hover">
+            <NTooltip trigger="hover" placement="right">
               <template #trigger>
                 <NButton quaternary circle size="small">
                   <template #icon><NIcon><InformationCircleOutline /></NIcon></template>
                 </NButton>
               </template>
-              仅展示最近20条上传记录，更多记录请前往网页版查看
+              仅展示最近20条上传记录，更多记录请前往网页版查看。
             </NTooltip>
           </div>
           <div class="header-actions">
@@ -434,7 +438,6 @@ onBeforeUnmount(() => {
                 >
                   <NButton quaternary type="primary" size="small">
                     <template #icon><NIcon><CopyOutline /></NIcon></template>
-                    复制
                   </NButton>
                 </NDropdown>
               </div>

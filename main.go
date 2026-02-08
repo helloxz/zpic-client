@@ -20,14 +20,24 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Zpic Client",
-		Width:  1200,
-		Height: 750,
+		Title:     "Zpic Client Beta",
+		Width:     1200,
+		Height:    750,
+		MinWidth:  1200,
+		MinHeight: 750,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
+		// 启用单实例锁
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId: "zpic-client", // 唯一标识符
+		},
+		// ============ 无边框窗口（可选） ============
+		Frameless:        false,
+		DisableResize:    false,
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
+		OnShutdown:       new_app.ClearLogs,
 		Bind: []interface{}{
 			app,
 			new_app,

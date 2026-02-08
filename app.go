@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"zpic-client/model"
 	"zpic-client/pkg"
 
@@ -71,4 +72,21 @@ func crontab(a *App) {
 // GetMessage 返回一个用于前端调用的测试字符串。
 func (a *App) GetMessage() string {
 	return "Hello from Go!"
+}
+
+func (a *App) GetRunDir(ctx context.Context) string {
+	env := runtime.Environment(ctx)
+
+	// env.BuildType 的值可能为:
+	// "dev"        -> 执行 wails dev 时
+	// "production" -> 执行 wails build 时
+	// "debug"      -> 执行 wails build -debug 时
+
+	if env.BuildType == "dev" {
+		runDir, _ := os.Getwd()
+		return runDir
+	} else {
+		runDir, _ := os.Executable()
+		return runDir
+	}
 }

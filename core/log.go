@@ -2,8 +2,13 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"os"
 )
+
+func (ac *AppCore) ClearLogs(ctx context.Context) {
+	SplitLog()
+}
 
 // 切割日志
 func SplitLog() bool {
