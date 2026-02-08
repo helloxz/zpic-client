@@ -179,7 +179,10 @@ const handleSave = async () => {
       localStorage.setItem('startupPage', form.value.startupPage)
       localStorage.setItem('base_url', baseUrl)
       localStorage.setItem('token', form.value.token)
+      // 清空相册缓存
       sessionStorage.removeItem('albumListCache')
+      // 清空粘贴上传设置缓存
+      localStorage.removeItem('paste_upload_settings')
       message.success('设置已保存')
     } else {
       message.error('设置保存失败')

@@ -346,7 +346,7 @@ func DownloadURL(urlStr string) (bool, string) {
 	return true, filePath
 }
 
-// 根据ID批量三次
+// 根据ID批量删除
 func (ac *AppCore) DeleteUrlsByIds(data IdsForm) ResData {
 	ids := data.Ids
 

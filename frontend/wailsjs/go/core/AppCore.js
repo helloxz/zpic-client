@@ -30,6 +30,10 @@ export function GetAlbumList() {
   return window['go']['core']['AppCore']['GetAlbumList']();
 }
 
+export function GetAppInfo() {
+  return window['go']['core']['AppCore']['GetAppInfo']();
+}
+
 export function GetRecentLogs() {
   return window['go']['core']['AppCore']['GetRecentLogs']();
 }

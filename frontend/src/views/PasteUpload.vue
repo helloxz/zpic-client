@@ -144,6 +144,11 @@ const showClearConfirm = () => {
   })
 }
 
+const removeItem = (index: number) => {
+  uploadHistory.value.splice(index, 1)
+  saveHistory()
+}
+
 const formatSize = (bytes: number) => {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
@@ -398,8 +403,8 @@ onBeforeUnmount(() => {
 
       <div v-else class="history-list">
         <div
-          v-for="item in uploadHistory"
-          :key="item.imgid"
+          v-for="(item, index) in uploadHistory"
+          :key="index"
           class="history-item"
         >
           <div class="history-thumb">
@@ -418,16 +423,21 @@ onBeforeUnmount(() => {
             <p class="history-size">{{ formatSize(item.size) }}</p>
             <div class="history-row">
               <span class="history-dimensions">{{ item.width }} × {{ item.height }}</span>
-              <NDropdown
-                :options="copyOptions"
-                @select="(key) => handleCopy(key, item.url, item.thumbnail_url)"
-                trigger="hover"
-              >
-                <NButton quaternary type="primary" size="small">
-                  <template #icon><NIcon><CopyOutline /></NIcon></template>
-                  复制
+              <div class="btns">
+                <NButton quaternary type="error" size="small" @click="removeItem(index)">
+                  <template #icon><NIcon><TrashOutline /></NIcon></template>
                 </NButton>
-              </NDropdown>
+                <NDropdown
+                  :options="copyOptions"
+                  @select="(key) => handleCopy(key, item.url, item.thumbnail_url)"
+                  trigger="hover"
+                >
+                  <NButton quaternary type="primary" size="small">
+                    <template #icon><NIcon><CopyOutline /></NIcon></template>
+                    复制
+                  </NButton>
+                </NDropdown>
+              </div>
             </div>
           </div>
         </div>
@@ -595,6 +605,7 @@ onBeforeUnmount(() => {
   max-height: calc(100vh - 400px);
   overflow-y: auto;
   padding: 4px;
+  padding-right: 10px;
 }
 
 .history-item {
@@ -648,6 +659,7 @@ onBeforeUnmount(() => {
 .history-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 

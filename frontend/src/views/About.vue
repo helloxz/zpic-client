@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, h } from 'vue'
+import { ref, h,onMounted } from 'vue'
 import { NCard, NIcon, NTag } from 'naive-ui'
 import type { Component } from 'vue'
+import { BrowserOpenURL } from "../../wailsjs/runtime/runtime"
+import { GetAppInfo } from '../../wailsjs/go/core/AppCore'
 import {
   CloudUploadOutline,
   LinkOutline,
@@ -9,17 +11,29 @@ import {
   LockClosedOutline,
   CheckmarkCircleOutline,
   LogoGithub,
-  OpenOutline
+  OpenOutline,
+  GlobeOutline
 } from '@vicons/ionicons5'
 
-// 应用版本号
-const version = ref<string>('1.0.0')
+
+const appInfos = ref({
+  version:'',
+  os:''
+})
 
 // 更新信息接口定义
 interface UpdateInfo {
   latest: string
   date: string
   downloadUrl: string
+}
+
+const getAppInfos = async () => {
+  const result = await GetAppInfo()
+  if(result.status){
+    appInfos.value = result.data
+    console.log("获取应用信息成功:", appInfos.value)
+  }
 }
 
 // 更新信息
@@ -51,7 +65,7 @@ const features: Feature[] = [
   {
     icon: SettingsOutline,
     title: '灵活配置',
-    description: '可自定义上传参数、快捷键、文件命名规则等'
+    description: '可自定义上传参数、上传动作。'
   },
   {
     icon: LockClosedOutline,
@@ -70,21 +84,30 @@ interface Link {
 // 相关链接数据
 const links: Link[] = [
   {
+    name: '官网',
+    url: 'https://dwz.ovh/ovbp',
+    icon: GlobeOutline
+  },
+  {
     name: 'GitHub',
-    url: 'https://github.com/example/zpic-client',
+    url: 'https://github.com/helloxz/zpic-client',
     icon: LogoGithub
   },
   {
     name: '问题反馈',
-    url: 'https://github.com/example/zpic-client/issues',
+    url: 'https://github.com/helloxz/zpic-client/issues',
     icon: OpenOutline
   },
   {
     name: '使用文档',
-    url: 'https://github.com/example/zpic-client/wiki',
+    url: 'https://dwz.ovh/myze',
     icon: OpenOutline
   }
 ]
+
+onMounted(() => {
+  getAppInfos()
+})
 </script>
 
 <template>
@@ -106,8 +129,8 @@ const links: Link[] = [
         <div class="app-details">
           <h2 class="app-name">ZPIC 图床客户端</h2>
           <p class="app-version">
-            版本 {{ version }}
-            <n-tag v-if="updateInfo.latest === version" type="success" size="small">
+            版本 <n-tag size="small" type="info">{{ appInfos.version }}</n-tag>
+            <n-tag v-if="updateInfo.latest === appInfos.version" type="success" size="small">
               <template #icon>
                 <n-icon>
                   <CheckmarkCircleOutline />
@@ -142,7 +165,7 @@ const links: Link[] = [
     </div>
 
     <!-- 更新信息卡片 -->
-    <n-card class="update-card">
+    <!-- <n-card class="update-card">
       <div class="update-info">
         <div class="update-status">
           <n-icon :size="20" color="#52c41a">
@@ -152,7 +175,7 @@ const links: Link[] = [
         </div>
         <p class="update-date">发布日期：{{ updateInfo.date }}</p>
       </div>
-    </n-card>
+    </n-card> -->
 
     <!-- 相关链接区域 -->
     <div class="links-section">
@@ -161,8 +184,7 @@ const links: Link[] = [
         <a
           v-for="link in links"
           :key="link.name"
-          :href="link.url"
-          target="_blank"
+          @click="BrowserOpenURL(link.url)"
           class="link-item"
         >
           <n-icon :size="18">
@@ -335,6 +357,10 @@ const links: Link[] = [
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.links-list a{
+  cursor: pointer;
 }
 
 /* 链接项样式 */

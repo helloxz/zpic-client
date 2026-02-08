@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 	"zpic-client/helper"
@@ -34,6 +35,14 @@ func SetCtx(ctx context.Context) {
 	appCtx = ctx
 }
 
+// 获取User-Agent
+func GetUserAgent() string {
+	version := VERSION
+	os := runtime.GOOS
+	// 组合成 User-Agent 字符串
+	return "zpic-client/" + version + " (" + os + ")"
+}
+
 // 返回resty client实例
 // ReqZpic 返回已配置好的 resty.Client（包含 base_url、超时与 Authorization 头）。
 // 示例：
@@ -48,7 +57,7 @@ func ReqZpic(path string) *resty.Client {
 	api_url := base_url + path
 	// 设置UA
 	client := resty.New().
-		SetHeader("User-Agent", "zpic-client/1.0.0").
+		SetHeader("User-Agent", GetUserAgent()).
 		SetTimeout(timeout).
 		SetBaseURL(api_url).
 		SetHeader("Authorization", "Bearer "+token)
@@ -100,7 +109,7 @@ func getUploadClient() *resty.Client {
 		baseURL := viper.GetString("base_url")
 		token := viper.GetString("token")
 		uploadClient = resty.New().
-			SetHeader("User-Agent", "zpic-client/1.0.0").
+			SetHeader("User-Agent", GetUserAgent()).
 			SetTimeout(120*time.Second).
 			SetBaseURL(baseURL+"/api/v3/upload").
 			SetHeader("Authorization", "Bearer "+token)

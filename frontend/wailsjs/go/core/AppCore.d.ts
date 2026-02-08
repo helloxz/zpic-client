@@ -16,6 +16,8 @@ export function ExportUrlsToCsv(arg1:core.ExportParams):Promise<core.ResData>;
 
 export function GetAlbumList():Promise<core.ResData>;
 
+export function GetAppInfo():Promise<core.ResData>;
+
 export function GetRecentLogs():Promise<core.ResData>;
 
 export function GetScanList(arg1:core.ScanListParams):Promise<core.ResData>;
