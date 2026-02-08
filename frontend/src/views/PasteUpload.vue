@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, h } from 'vue'
-import { useMessage, NCard, NButton, NIcon, NEmpty, NSpin, NImage, NTooltip, NDropdown, NModal, useDialog } from 'naive-ui'
+import { ref, onMounted, onBeforeUnmount, h, computed } from 'vue'
+import { useMessage, NCard, NButton, NIcon, NEmpty, NSpin, NImage, NTooltip, NDropdown, NDrawer, NDrawerContent, NForm, NFormItem, NSelect, NSwitch, useDialog } from 'naive-ui'
 import {
   CloudUploadOutline,
   CopyOutline,
   TrashOutline,
-  InformationCircleOutline
+  InformationCircleOutline,
+  SettingsOutline
 } from '@vicons/ionicons5'
 import req, { toForm } from '../utils/req'
+import { useBaseStore } from '../stores/base'
+import { ClipboardSetText } from "../../wailsjs/runtime/runtime"
 
 interface UploadResult {
   imgid: string
@@ -21,17 +24,81 @@ interface UploadResult {
   uploaded_at: string
 }
 
+interface UploadParams {
+  dedup: boolean
+  album_id: number
+  watermark: boolean
+  compress: boolean
+}
+
+interface Settings {
+  album_id: number
+  dedup: boolean
+  watermark: boolean
+  compress: boolean
+  auto_copy: string
+}
+
 const message = useMessage()
 const dialog = useDialog()
+const baseStore = useBaseStore()
 const isDragging = ref(false)
 const isUploading = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploadHistory = ref<UploadResult[]>([])
+const showSettings = ref(false)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp']
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
 const MAX_HISTORY = 20
 const STORAGE_KEY = 'paste_upload_history'
+const SETTINGS_KEY = 'paste_upload_settings'
+
+const defaultSettings: Settings = {
+  album_id: 0,
+  dedup: true,
+  watermark: false,
+  compress: false,
+  auto_copy: 'url'
+}
+
+const settings = ref<Settings>({ ...defaultSettings })
+
+const autoCopyOptions = [
+  { label: 'URL', value: 'url' },
+  { label: 'Markdown', value: 'markdown' },
+  { label: 'HTML', value: 'html' },
+  { label: 'BBCode', value: 'bbcode' }
+]
+
+const albumOptions = computed(() =>
+  baseStore.albumList.map((item) => ({
+    label: item.name,
+    value: item.id
+  }))
+)
+
+const loadSettings = () => {
+  try {
+    const data = localStorage.getItem(SETTINGS_KEY)
+    if (data) {
+      settings.value = { ...defaultSettings, ...JSON.parse(data) }
+    }
+  } catch (e) {
+    console.error('加载设置失败:', e)
+  }
+}
+
+const saveSettings = () => {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings.value))
+    message.success('设置已保存')
+    showSettings.value = false
+  } catch (e) {
+    console.error('保存设置失败:', e)
+    message.error('保存设置失败')
+  }
+}
 
 const loadHistory = () => {
   try {
@@ -91,6 +158,15 @@ const isValidFile = (file: File) => {
   return true
 }
 
+const getUploadParams = (): UploadParams => {
+  return {
+    dedup: settings.value.dedup,
+    album_id: settings.value.album_id,
+    watermark: settings.value.watermark,
+    compress: settings.value.compress
+  }
+}
+
 const uploadFile = async (file: File) => {
   if (!isValidFile(file)) {
     message.error('不支持的文件格式，仅支持 jpg/jpeg/png/gif/bmp/webp')
@@ -105,7 +181,11 @@ const uploadFile = async (file: File) => {
       return
     }
 
-    const formData = toForm({ file })
+    const params = getUploadParams()
+    const formData = toForm({
+      file,
+      params: JSON.stringify(params)
+    })
     
     const response = await req.post('/api/v3/upload', formData, {
       headers: {
@@ -116,6 +196,7 @@ const uploadFile = async (file: File) => {
     if (response.data && response.data.code === 200) {
       addToHistory(response.data.data)
       message.success('上传成功')
+      autoCopy(response.data.data.url, response.data.data.filename)
     } else {
       message.error(response.data?.msg || '上传失败')
     }
@@ -125,6 +206,28 @@ const uploadFile = async (file: File) => {
   } finally {
     isUploading.value = false
   }
+}
+
+const autoCopy = (url: string, filename: string) => {
+  const type = settings.value.auto_copy
+  let text = ''
+  switch (type) {
+    case 'url':
+      text = url
+      break
+    case 'html':
+      text = `<img title="${filename}" src="${url}" alt="" />`
+      break
+    case 'markdown':
+      text = `![${filename}](${url})`
+      break
+    case 'bbcode':
+      text = `[img]${url}[/img]`
+      break
+    default:
+      return
+  }
+  ClipboardSetText(text)
 }
 
 const handleFileSelect = (event: Event) => {
@@ -215,6 +318,8 @@ const openFileDialog = () => {
 }
 
 onMounted(() => {
+  baseStore.fetchAlbumList()
+  loadSettings()
   loadHistory()
   document.addEventListener('paste', handlePaste)
 })
@@ -273,10 +378,17 @@ onBeforeUnmount(() => {
               仅展示最近20条上传记录，更多记录请前往网页版查看
             </NTooltip>
           </div>
-          <NButton v-if="uploadHistory.length > 0" quaternary type="error" size="small" @click="showClearConfirm">
-            <template #icon><NIcon><TrashOutline /></NIcon></template>
-            清空
-          </NButton>
+          <div class="header-actions">
+            
+            <NButton v-if="uploadHistory.length > 0" quaternary type="error" size="small" @click="showClearConfirm">
+              <template #icon><NIcon><TrashOutline /></NIcon></template>
+              清空
+            </NButton>
+            <NButton quaternary type="default" size="small" @click="showSettings = true">
+              <template #icon><NIcon><SettingsOutline /></NIcon></template>
+              设置
+            </NButton>
+          </div>
         </div>
       </template>
 
@@ -286,7 +398,7 @@ onBeforeUnmount(() => {
 
       <div v-else class="history-list">
         <div
-          v-for="(item, index) in uploadHistory"
+          v-for="item in uploadHistory"
           :key="item.imgid"
           class="history-item"
         >
@@ -321,6 +433,39 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </NCard>
+
+    <NDrawer v-model:show="showSettings" :width="320" placement="right">
+      <NDrawerContent title="上传设置" closable>
+        <NForm label-placement="top">
+          <NFormItem label="选择相册">
+            <NSelect
+              v-model:value="settings.album_id"
+              :options="albumOptions"
+              placeholder="选择相册"
+            />
+          </NFormItem>
+          <NFormItem label="图片去重">
+            <NSwitch v-model:value="settings.dedup" />
+          </NFormItem>
+          <NFormItem label="图片压缩">
+            <NSwitch v-model:value="settings.compress" />
+          </NFormItem>
+          <NFormItem label="文字水印">
+            <NSwitch v-model:value="settings.watermark" />
+          </NFormItem>
+          <NFormItem label="上传成功后自动复制">
+            <NSelect
+              v-model:value="settings.auto_copy"
+              :options="autoCopyOptions"
+              placeholder="选择复制格式"
+            />
+          </NFormItem>
+        </NForm>
+        <template #footer>
+          <NButton type="primary" @click="saveSettings">保存</NButton>
+        </template>
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
 
@@ -431,6 +576,11 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .empty-history {
   display: flex;
   align-items: center;
@@ -463,19 +613,13 @@ onBeforeUnmount(() => {
 
 .history-thumb {
   flex-shrink: 0;
-  /* border-radius: 6px; */
-  /* overflow: hidden; */
 }
 
 .thumb-image {
   display: flex;
-  /* margin-top:0px; */
   align-items: center;
   border-radius: 6px;
-  /* 添加一些边框阴影特效 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  /* display: block; */
-  /* padding-top:6px; */
 }
 
 .history-info {

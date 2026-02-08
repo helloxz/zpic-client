@@ -31,7 +31,8 @@ const serverBaseUrls: Record<string, string> = {
 
 const startupPageOptions = [
   { label: '扫描上传', value: '/scan-upload' },
-  { label: 'URL上传', value: '/url-upload' }
+  { label: 'URL上传', value: '/url-upload' },
+  {label: '粘贴上传', value: '/paste-upload' }
 ]
 
 const formRef = ref<any>(null)
