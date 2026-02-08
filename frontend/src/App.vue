@@ -7,6 +7,9 @@ const baseStore = useBaseStore();
 // 控制侧边栏是否折叠
 const sideNavCollapsed = ref<boolean>(false)
 
+// 启动时执行路由判断
+baseStore.onAppStart();
+
 onMounted(() => {
   baseStore.fetchAlbumList();
 });

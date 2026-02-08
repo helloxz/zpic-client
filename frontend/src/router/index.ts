@@ -27,6 +27,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    // 粘贴上传页面
+    path: '/paste-upload',
+    name: 'paste-upload',
+    component: () => import('../views/PasteUpload.vue'),
+    meta: {
+      title: '粘贴上传',
+      icon: 'clipboard'
+    }
+  },
+  {
     // 设置页面
     path: '/settings',
     name: 'settings',

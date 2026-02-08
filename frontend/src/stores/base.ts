@@ -1,7 +1,10 @@
 import { defineStore } from 'pinia';
 import { GetAlbumList } from '../../wailsjs/go/core/AppCore';
+// import { useRouter } from 'vue-router';
+import router from '../router';
 
 const DEFAULT_ALBUM = { id: 0, name: '默认相册' };
+// const router = useRouter();
 
 export const useBaseStore = defineStore('base', {
 	state: () => ({
@@ -78,6 +81,26 @@ export const useBaseStore = defineStore('base', {
             const mi = pad2(d.getMinutes())
             const ss = pad2(d.getSeconds())
             return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`
+        },
+        // 启动时的操作
+        async onAppStart() {
+            // 获取storage中的token
+            const token = localStorage.getItem('token')
+            const startupPage = localStorage.getItem('startupPage') || '/scan-upload'
+            // 如果不存在token或者为空
+            if (!token || token.trim() === '') {
+                // 跳转到设置页面
+                router.replace('/settings')
+                return
+            }
+            // 如果存在startupPage，且不为空
+            if (startupPage && startupPage.trim() !== '') {
+                console.log('Startup page from storage:', startupPage)
+                // 跳转到startupPage
+                router.replace(startupPage)
+                return
+            }
+            // 其他情况，啥也不干。
         }
 	},
 });

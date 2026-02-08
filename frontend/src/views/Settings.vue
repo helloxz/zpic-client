@@ -15,6 +15,7 @@ interface SettingForm {
   baseUrl: string
   token: string
   httpProxy: string
+  startupPage: string
 }
 
 const serverOptions = [
@@ -28,6 +29,11 @@ const serverBaseUrls: Record<string, string> = {
   piclink: 'https://go.piclink.cc'
 }
 
+const startupPageOptions = [
+  { label: '扫描上传', value: '/scan-upload' },
+  { label: 'URL上传', value: '/url-upload' }
+]
+
 const formRef = ref<any>(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -37,7 +43,8 @@ const form = ref<SettingForm>({
   server: 'imgurl',
   baseUrl: '',
   token: '',
-  httpProxy: ''
+  httpProxy: '',
+  startupPage: '/scan-upload'
 })
 
 const rules = {
@@ -101,6 +108,11 @@ const initSettings = async () => {
     }
     form.value.token = data.token || ''
     form.value.httpProxy = data.http_proxy || ''
+
+    const savedStartupPage = localStorage.getItem('startupPage')
+    if (savedStartupPage) {
+      form.value.startupPage = savedStartupPage
+    }
   } catch (err) {
     console.error('获取设置失败:', err)
   } finally {
@@ -163,7 +175,9 @@ const handleSave = async () => {
       http_proxy: form.value.httpProxy
     })
     if (success) {
-      // 清理相册的sessionStorage缓存
+      localStorage.setItem('startupPage', form.value.startupPage)
+      localStorage.setItem('base_url', baseUrl)
+      localStorage.setItem('token', form.value.token)
       sessionStorage.removeItem('albumListCache')
       message.success('设置已保存')
     } else {
@@ -245,6 +259,14 @@ onMounted(() => {
           <NInput
             v-model:value="form.httpProxy"
             placeholder="请输入HTTP代理地址，如：http://127.0.0.1:7890"
+          />
+        </NFormItem>
+
+        <NFormItem label="启动后进入" path="startupPage">
+          <NSelect
+            v-model:value="form.startupPage"
+            :options="startupPageOptions"
+            placeholder="请选择启动后进入的页面"
           />
         </NFormItem>
 

@@ -9,7 +9,8 @@ import {
   InformationCircleOutline,
   ChevronBackOutline,
   ChevronForwardOutline,
-  DocumentTextOutline
+  DocumentTextOutline,
+  ClipboardOutline
 } from '@vicons/ionicons5'
 
 // 路由 hooks
@@ -35,6 +36,11 @@ const menuOptions = [
     label: 'URL上传',
     key: 'url-upload',
     icon: renderIcon(LinkOutline)
+  },
+  {
+    label: '粘贴上传',
+    key: 'paste-upload',
+    icon: renderIcon(ClipboardOutline)
   },
   {
     label: '设置',
