@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"runtime"
 
 	"zpic-client/core"
 
@@ -13,16 +14,26 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed bin/*
+var embeddedBin embed.FS
+
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 	new_app := core.NewAppCore()
 
+	width := 1200
+	height := 750
+	// Windows 补偿标题栏和边框
+	if runtime.GOOS == "windows" || runtime.GOOS == "linux" {
+		height += 40 // 补偿约 30px
+	}
+
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:     "Zpic Client",
-		Width:     1200,
-		Height:    750,
+		Width:     width,
+		Height:    height,
 		MinWidth:  1200,
 		MinHeight: 750,
 		AssetServer: &assetserver.Options{

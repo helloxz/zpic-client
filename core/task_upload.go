@@ -216,6 +216,8 @@ func compressJpeg(srcPath string, destPath string) (string, error) {
 	destDir := filepath.Dir(destPath)
 
 	cmd := exec.Command(optimizePath, "--max=80", "-s", "--all-progressive", srcPath, "-d", destDir)
+	// 跨平台隐藏窗口
+	hideWindow(cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		helper.WriteLog(fmt.Sprintf("jpegoptim压缩失败: err=%v, output=%s", err, string(output)))
@@ -241,6 +243,8 @@ func compressPng(srcPath string, destPath string) (string, error) {
 		"--out", destPath,
 		srcPath,
 	)
+	// 跨平台隐藏窗口
+	hideWindow(cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		helper.WriteLog(fmt.Sprintf("oxipng压缩失败: err=%v, output=%s", err, string(output)))

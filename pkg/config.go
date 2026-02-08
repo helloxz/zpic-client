@@ -17,7 +17,7 @@ func InitConfig() {
 	tempDir := os.TempDir()
 	tempDir = filepath.Join(tempDir, "zpic-temp")
 	// 创建必要的目录
-	dirs := []string{runDir + "/data", runDir + "/data/config", runDir + "/data/db", runDir + "/data/logs", runDir + "/data/temp", tempDir}
+	dirs := []string{runDir + "/bin", runDir + "/data", runDir + "/data/config", runDir + "/data/db", runDir + "/data/logs", runDir + "/data/temp", tempDir}
 	for _, dir := range dirs {
 		err := helper.CreateDir(dir)
 		if err != nil {
