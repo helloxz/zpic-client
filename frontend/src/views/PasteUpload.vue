@@ -54,6 +54,7 @@ const showSettings = ref(false)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp']
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 const MAX_HISTORY = 20
 const STORAGE_KEY = 'paste_upload_history'
 const SETTINGS_KEY = 'paste_upload_settings'
@@ -160,6 +161,9 @@ const formatSize = (bytes: number) => {
 }
 
 const isValidFile = (file: File) => {
+  if (file.size > MAX_FILE_SIZE) {
+    return false
+  }
   if (!ALLOWED_TYPES.includes(file.type)) {
     const ext = '.' + file.name.split('.').pop()?.toLowerCase()
     return ALLOWED_EXTENSIONS.includes(ext)
@@ -178,7 +182,11 @@ const getUploadParams = (): UploadParams => {
 
 const uploadFile = async (file: File) => {
   if (!isValidFile(file)) {
-    message.error('不支持的文件格式，仅支持 jpg/jpeg/png/gif/bmp/webp')
+    if (file.size > MAX_FILE_SIZE) {
+      message.error(`文件大小不能超过 10M，当前文件 ${formatSize(file.size)}`)
+    } else {
+      message.error('不支持的文件格式，仅支持 jpg/jpeg/png/gif/bmp/webp')
+    }
     return
   }
 
@@ -605,7 +613,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
-  max-height: calc(100vh - 400px);
+  max-height: calc(100vh - 385px);
   overflow-y: auto;
   padding: 4px;
   padding-right: 10px;
