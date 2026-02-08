@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { NCard, NForm, NFormItem, NInput, NSelect, NButton, NIcon, NAlert } from 'naive-ui'
-import { SaveOutline, RefreshOutline } from '@vicons/ionicons5'
+import { NCard, NForm, NFormItem, NInput, NSelect, NButton, NIcon, NAlert, NTooltip } from 'naive-ui'
+import { SaveOutline, RefreshOutline, InformationCircleOutline } from '@vicons/ionicons5'
 import { UpdateSetting, GetSetting } from '../../wailsjs/go/core/AppCore'
 import { core } from '../../wailsjs/go/models'
 import { useMessage } from 'naive-ui'
@@ -226,7 +226,22 @@ onMounted(() => {
           />
         </NFormItem>
 
-        <NFormItem label="HTTP 代理（可选）" path="httpProxy">
+        <NFormItem path="httpProxy">
+          <template #label>
+            <span class="http-proxy-label">
+              <span>HTTP 代理（可选）</span>
+              <NTooltip trigger="hover" placement="right">
+                <template #trigger>
+                  <span class="info-tip">
+                    <NIcon size="16">
+                      <InformationCircleOutline />
+                    </NIcon>
+                  </span>
+                </template>
+                HTTP代理仅对URL上传有效。
+              </NTooltip>
+            </span>
+          </template>
           <NInput
             v-model:value="form.httpProxy"
             placeholder="请输入HTTP代理地址，如：http://127.0.0.1:7890"
@@ -309,5 +324,22 @@ onMounted(() => {
   gap: 12px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
+}
+
+.info-tip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  color: #909399;
+  cursor: pointer;
+}
+
+.info-tip:hover {
+  color: #4098fc;
+}
+
+.http-proxy-label {
+  display: inline-flex;
+  align-items: center;
 }
 </style>

@@ -92,7 +92,7 @@ const links: Link[] = [
     <!-- 页面标题区域 -->
     <div class="page-header">
       <h1>关于 ZPIC Client</h1>
-      <p class="subtitle">一款简洁高效的图片上传客户端，适合大批量图片上传需求。</p>
+      <p class="subtitle">一款简洁高效的图片上传客户端，可用于ImgURL和图链，适合大批量图片上传需求。</p>
     </div>
 
     <!-- 应用信息卡片 -->
