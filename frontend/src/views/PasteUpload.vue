@@ -10,7 +10,7 @@ import {
 } from '@vicons/ionicons5'
 import req, { toForm } from '../utils/req'
 import { useBaseStore } from '../stores/base'
-import { ClipboardSetText } from "../../wailsjs/runtime/runtime"
+import { ClipboardSetText,BrowserOpenURL } from "../../wailsjs/runtime/runtime"
 import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 
@@ -428,6 +428,7 @@ onBeforeUnmount(() => {
               object-fit="cover"
               :preview-disabled="true"
               class="thumb-image"
+              @click="BrowserOpenURL(item.url)"
             />
           </div>
           <div class="history-info">
@@ -642,6 +643,7 @@ onBeforeUnmount(() => {
   align-items: center;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
 .history-info {

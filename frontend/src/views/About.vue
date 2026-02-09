@@ -158,7 +158,7 @@ const checkUpdate = async () => {
           positiveText: '前往下载',
           negativeText: '取消',
           onPositiveClick: () => {
-            BrowserOpenURL(`http://soft.xiaoz.org/#/UniBin/zpic-client/${remoteMaxVersion}/${appInfos.value.os}`)
+            BrowserOpenURL(`http://soft.xiaoz.org/#/UniBin/zpic-client/${remoteMaxVersion}`)
           }
         })
       }
@@ -182,8 +182,8 @@ onMounted(() => {
   <div class="about">
     <!-- 页面标题区域 -->
     <div class="page-header">
-      <h1>关于 ZPIC Client</h1>
-      <p class="subtitle">一款简洁高效的图片上传客户端，可用于ImgURL和图链，适合大批量图片上传需求。</p>
+      <h1>关于 Zpic Client</h1>
+      <p class="subtitle">一款简洁高效的图片上传客户端，可用于 <a @click="BrowserOpenURL('https://www.imgurl.org/')" href="javascript:;">ImgURL</a> 和 <a @click="BrowserOpenURL('https://go.piclink.cc/')" href="javascript:;">图链</a> ，适合大批量图片上传需求。</p>
     </div>
 
     <!-- 应用信息卡片 -->
@@ -195,7 +195,7 @@ onMounted(() => {
         </div>
         <!-- 应用详细信息 -->
         <div class="app-details">
-          <h2 class="app-name">ZPIC 图床客户端</h2>
+          <h2 class="app-name">Zpic 图床客户端</h2>
           <p class="app-version">
             版本 <n-tag size="small" type="info">{{ appInfos.version }}</n-tag>
             <n-button size="small" quaternary circle :loading="checkingUpdate" @click="checkUpdate">
@@ -289,6 +289,15 @@ onMounted(() => {
   font-size: 14px;
   margin: 0;
 }
+/* .subtitle a{
+  color: #4098fc;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+.subtitle a:hover{
+  color: #1d77e5;
+} */
 
 /* 应用信息卡片 */
 .about-card {
