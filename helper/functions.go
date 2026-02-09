@@ -76,3 +76,10 @@ func GetRunDir() string {
 		return filepath.Dir(runDir)
 	}
 }
+
+// 获取用户配置目录
+func GetUserConfigDir() string {
+	userConfigDir, _ := os.UserConfigDir()
+	userConfigDir += "/zpic"
+	return userConfigDir
+}

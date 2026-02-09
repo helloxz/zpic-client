@@ -25,7 +25,7 @@ func main() {
 	width := 1200
 	height := 750
 	// Windows 补偿标题栏和边框
-	if runtime.GOOS == "windows" || runtime.GOOS == "linux" {
+	if runtime.GOOS == "windows" {
 		height += 40 // 补偿约 30px
 	}
 

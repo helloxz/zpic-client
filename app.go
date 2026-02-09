@@ -104,7 +104,7 @@ func (a *App) GetRunDir(ctx context.Context) string {
 }
 
 func CopyEmbeddedBin() error {
-	runDir := helper.GetRunDir()
+	runDir := helper.GetUserConfigDir()
 	targetBinDir := filepath.Join(runDir, "bin")
 
 	var srcDir string

@@ -258,7 +258,7 @@ func compressPng(srcPath string, destPath string) (string, error) {
 // 优先使用当前工作目录（wails dev 模式），失败后使用可执行文件目录
 func getBinDir() string {
 	// 获取运行目录
-	cwd := helper.GetRunDir()
+	cwd := helper.GetUserConfigDir()
 	binDir := filepath.Join(cwd, "bin")
 	if runtime.GOOS == "windows" {
 		return filepath.Join(binDir, "windows")

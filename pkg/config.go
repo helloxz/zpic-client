@@ -12,12 +12,12 @@ import (
 
 // 初始化配置文件
 func InitConfig() {
-	runDir := helper.GetRunDir()
+	userConfigDir := helper.GetUserConfigDir()
 	// 获取系统临时目录
 	tempDir := os.TempDir()
 	tempDir = filepath.Join(tempDir, "zpic-temp")
 	// 创建必要的目录
-	dirs := []string{runDir + "/bin", runDir + "/data", runDir + "/data/config", runDir + "/data/db", runDir + "/data/logs", runDir + "/data/temp", tempDir}
+	dirs := []string{userConfigDir + "/bin", userConfigDir + "/data", userConfigDir + "/data/config", userConfigDir + "/data/db", userConfigDir + "/data/logs", userConfigDir + "/data/temp", tempDir}
 	for _, dir := range dirs {
 		err := helper.CreateDir(dir)
 		if err != nil {
@@ -29,7 +29,7 @@ func InitConfig() {
 	}
 
 	//配置文件目录
-	config_dir := runDir + "/data/config"
+	config_dir := userConfigDir + "/data/config"
 	//配置文件路径
 	config_file := config_dir + "/config.toml"
 	//检查配置文件是否存在，如果存在了，则不进行初始化
@@ -68,10 +68,10 @@ var once sync.Once
 func LoadConfig() {
 	// 初始话配置文件
 	InitConfig()
-	runDir := helper.GetRunDir()
+	userConfigDir := helper.GetUserConfigDir()
 	once.Do(func() {
 		//默认配置文件
-		config_file := runDir + "/data/config/config.toml"
+		config_file := userConfigDir + "/data/config/config.toml"
 
 		viper.SetConfigFile(config_file) // 指定配置文件路径
 		//指定ini类型的文件
