@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Zpic Client - 开源跨平台图床客户端，支持ImgURL和图链">
     <title>Zpic Client - 开源跨平台图床客户端</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+    <link crossorigin href="https://lib.rss.ink/bootstrap/4.6.1/css/bootstrap.min.css" rel="stylesheet">
+    <link crossorigin href="https://lib.rss.ink/font-awesome/5.2.0/css/all.min.css" rel="stylesheet">
 
 
     <style>
@@ -50,6 +50,9 @@
             max-width: 36px;
             max-height: 36px;
             margin-right: 8px;
+        }
+        .navbar-nav{
+            margin-left: 6px !important;
         }
 
         .navbar-nav .nav-link {
@@ -211,26 +214,31 @@
         }
 
         .screenshot-container {
-            max-width: 1100px;
+            max-width: 1000px;
             margin: 0 auto;
+        }
+        .carousel-inner{
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
 
         .screenshot-carousel {
-            border-radius: 16px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             background: var(--dark-color);
         }
 
         .carousel-item {
             transition: transform 0.6s ease;
+            border-radius: 16px;
         }
 
         .carousel-item img {
             width: 100%;
             height: auto;
             display: block;
-            border-radius: 8px;
+            border-radius: 16px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
 
@@ -404,6 +412,49 @@
             transform: translateY(-3px);
         }
 
+        /* 返回顶部按钮 */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 5px 20px rgba(74, 144, 217, 0.4);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .back-to-top:hover {
+            background: #3a7bc8;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(74, 144, 217, 0.5);
+        }
+
+        .back-to-top.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* 响应式设计 */
         @media (max-width: 992px) {
             .hero h1 {
@@ -426,7 +477,8 @@
             }
 
             .hero h1 {
-                padding:2em;
+                padding-top:1.8em;
+                padding-bottom: 1em;
                 font-size: 2.2rem;
             }
 
@@ -464,7 +516,7 @@
             }
         }
 
-        @media (max-width: 576px) {
+        /* @media (max-width: 576px) {
             .hero h1 {
                 padding:2em;
                 font-size: 1.8rem;
@@ -487,7 +539,7 @@
             .carousel-control-next {
                 right: 10px;
             }
-        }
+        } */
     </style>
 </head>
 <body>
@@ -618,12 +670,22 @@
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="feature-card">
                         <div class="feature-icon">
+                            <i class="fas fa-clone"></i>
+                        </div>
+                        <h3>图片去重</h3>
+                        <p>智能检测重复图片，自动跳过已上传的图片，避免重复占用空间。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
                             <i class="fas fa-code-branch"></i>
                         </div>
                         <h3>开源可靠</h3>
                         <p>开放源代码，安全透明，无后门风险，您可以放心使用并参与贡献。</p>
                     </div>
                 </div>
+                
             </div>
         </div>
     </section>
@@ -657,10 +719,10 @@
                             <img src="https://sv.png.pub/2026/02/10/cyaqlkSC.png" alt="图片管理功能" class="d-block w-100">
                         </div>
                     </div>
-                    <a class="carousel-control-prev" href="javascript:void(0)" role="button" data-slide="prev">
+                    <a class="carousel-control-prev" href="#screenshotCarousel" role="button" data-slide="prev">
                         <i class="carousel-control-prev-icon fas fa-chevron-left" aria-hidden="true"></i>
                     </a>
-                    <a class="carousel-control-next" href="javascript:void(0)" role="button" data-slide="next">
+                    <a class="carousel-control-next" href="#screenshotCarousel" role="button" data-slide="next">
                         <i class="carousel-control-next-icon fas fa-chevron-right" aria-hidden="true"></i>
                     </a>
                 </div>
@@ -728,16 +790,20 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    <button class="back-to-top" id="backToTop" title="返回顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="https://lib.rss.ink/jquery/2.2.4/jquery.min.js"></script>
+    <script src="https://lib.rss.ink/popper/1.16.1/popper.min.js"></script>
+    <script src="https://lib.rss.ink/bootstrap/4.6.1/js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
             $('.navbar-toggler').click(function() {
                 $(this).toggleClass('active');
             });
 
-            $('a[href^="#"]').on('click', function(e) {
+            $('a[href^="#"]:not(.carousel-control-prev):not(.carousel-control-next)').on('click', function(e) {
                 e.preventDefault();
                 var target = $(this.hash);
                 if (target.length) {
@@ -758,6 +824,18 @@
                 } else {
                     $('.navbar').removeClass('scrolled');
                 }
+
+                if ($(this).scrollTop() > 300) {
+                    $('#backToTop').addClass('show');
+                } else {
+                    $('#backToTop').removeClass('show');
+                }
+            });
+
+            $('#backToTop').click(function() {
+                $('html, body').animate({
+                    scrollTop: 0
+                }, 600, 'swing');
             });
         });
     </script>
