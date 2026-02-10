@@ -1,19 +1,31 @@
-# README
+# Zpic Client
 
-## About
+Zpic Client是一款开源、实用的跨平台图床客户端，适用于 [ImgURL](https://www.imgurl.org/)、 [图链](https://go.piclink.cc/) 及 [Zpic Pro](https://www.zpic.pro/)，使用Golang + Wails开发。
 
-This is the official Wails Vue template.
+## 特点
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+* **跨平台：** 支持 macOS、Windows、Linux 三大主流平台。
+* **批量上传：** 支持扫描目录上传，可一次性上传数千张图片。
+* **URL 上传：** 支持通过图片 URL 直接上传，方便快捷。
+* **粘贴上传：** 支持Ctrl + V粘贴上传，粘贴图片后自动上传并复制链接到剪贴板。
+* **表格导出：** 可将上传结果导出为 CSV 表格，方便导入其它系统。
+* **低占用：** 得益于 Golang + Wails 开发，资源占用极低，运行流畅高效。
+* **图片压缩：** 扫描上传时自动对大于 300KB 的 PNG/JPG 图片进行无损压缩。
+* **图片去重：** 智能检测重复图片，自动跳过已上传的图片，避免重复占用空间。
 
-## Live Development
+## 部分截图
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+![CleanShot 2026-02-10 at 09.32.32@2x.png](https://v.uuu.ovh/2026/02/10/7qHFNtIb.png)
 
-## Building
+![CleanShot 2026-02-10 at 09.33.53@2x.png](https://v.uuu.ovh/2026/02/10/0tjn8qvJ.png)
 
-To build a redistributable, production mode package, use `wails build`.
+![CleanShot 2026-02-10 at 09.33.16@2x.png](https://v.uuu.ovh/2026/02/10/Srl3F3jo.png)
+
+![CleanShot 2026-02-10 at 09.34.33@2x.png](https://v.uuu.ovh/2026/02/10/cyaqlkSC.png)
+
+## 联系我们
+
+* 博客：[https://blog.xiaoz.org/](https://blog.xiaoz.org/)
+* ImgURL：[https://www.imgurl.org/](https://www.imgurl.org/)
+* 图链：[https://go.piclink.cc/](https://go.piclink.cc/)
+
