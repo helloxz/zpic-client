@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Zpic Client - 开源跨平台图床客户端，支持ImgURL和图链">
+    <title>Zpic Client - 开源跨平台图床客户端</title>
+    <meta name="keywords" content="Zpic Client,Zpic客户端,图床客户端,ImgURL,图链,Zpic Pro,ImgURL客户端,图链客户端,图片批量上传" />
+    <link crossorigin href="https://lib.rss.ink/bootstrap/4.6.1/css/bootstrap.min.css" rel="stylesheet">
+    <link crossorigin href="https://lib.rss.ink/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="https://sv.png.pub/2026/02/09/Qmz5Lut0.png" />
+    <style>
+        :root {
+            --primary-color: #4a90d9;
+            --secondary-color: #67b26f;
+            --dark-color: #2c3e50;
+            --light-color: #f8f9fa;
+            --text-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 95%);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color) !important;
+        }
+        .navbar-brand img{
+            max-width: 36px;
+            max-height: 36px;
+            margin-right: 8px;
+        }
+        .navbar-nav{
+            margin-left: auto !important;
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--text-color) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--primary-color) !important;
+        }
+
+        /* Hero 区域 */
+        .hero {
+            background: linear-gradient(135deg, var(--dark-color) 0%, #1a252f 100%);
+            color: white;
+            padding: 120px 0 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+            background-size: 30px 30px;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            padding-top:1em;
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, #a8d8ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero .subtitle a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: underline;
+            text-decoration-color: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .hero .subtitle a:hover {
+            color: #a8d8ff;
+            text-decoration-color: #a8d8ff;
+        }
+
+        .hero-buttons .btn {
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .btn-primary-custom {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            background: #3a7bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(74, 144, 217, 0.4);
+        }
+
+        .btn-outline-light-custom {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+        }
+
+        .btn-outline-light-custom:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: white;
+            color: white;
+        }
+
+        /* 特点区域 */
+        .features {
+            padding: 80px 0;
+            background: var(--light-color);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+        }
+
+        .section-title p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            height: 100%;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6bb3f0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .feature-card h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .feature-card p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        /* 截图轮播区域 */
+        .screenshots {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .screenshot-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .carousel-inner{
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .screenshot-carousel {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            background: var(--dark-color);
+        }
+
+        .carousel-item {
+            transition: transform 0.6s ease;
+            border-radius: 16px;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 1;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .carousel-control-prev {
+            left: 20px;
+        }
+
+        .carousel-control-next {
+            right: 20px;
+        }
+
+        .carousel-control-prev:hover,
+        .carousel-control-next:hover {
+            background: white;
+            transform: translateY(-50%) scale(1.1);
+        }
+        .download-card .top {
+            font-size: 3.6rem;
+            padding-bottom: 8px;
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-image: none;
+            color: var(--dark-color);
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .carousel-indicators {
+            bottom: 20px;
+        }
+
+        .carousel-indicators li {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            margin: 0 5px;
+        }
+
+        .carousel-indicators .active {
+            background: white;
+        }
+
+        /* 下载区域 */
+        .download {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--dark-color) 0%, #1a252f 100%);
+            color: white;
+        }
+
+        .download h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .download-cards {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+        }
+
+        .download-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            min-width: 340px;
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .download-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .download-card i {
+            font-size: 1.5rem;
+            /* margin-bottom: 1.5rem; */
+        }
+
+        .download-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .download-card p {
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .download-card .btn {
+            width: 100%;
+            border-radius: 50px;
+            padding: 0.8rem 2rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1a252f;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 40px 0 20px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            /* margin-left: 1.5rem; */
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            background: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* 返回顶部按钮 */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 5px 20px rgba(74, 144, 217, 0.4);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .back-to-top:hover {
+            background: #3a7bc8;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(74, 144, 217, 0.5);
+        }
+
+        .back-to-top.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .hero h1 {
+                padding-top:2em;
+                font-size: 2.8rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-nav{
+                margin-left:6px !important;
+            }
+            .navbar-brand {
+                padding-left: 1rem;
+            }
+
+            .hero {
+                padding: 80px 0 60px;
+            }
+
+            .hero h1 {
+                padding-top:1.8em;
+                padding-bottom: 1em;
+                font-size: 2.2rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.1rem;
+                line-height: 1.8;
+            }
+
+            .hero-buttons .btn {
+                display: block;
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+
+            .section-title h2 {
+                font-size: 2rem;
+            }
+
+            .download h2 {
+                font-size: 2rem;
+            }
+
+            .download-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-links a {
+                margin: 0 0.75rem;
+            }
+        }
+
+        /* @media (max-width: 576px) {
+            .hero h1 {
+                padding:2em;
+                font-size: 1.8rem;
+            }
+
+            .feature-card {
+                padding: 2rem;
+            }
+
+            .carousel-control-prev,
+            .carousel-control-next {
+                width: 40px;
+                height: 40px;
+            }
+
+            .carousel-control-prev {
+                left: 10px;
+            }
+
+            .carousel-control-next {
+                right: 10px;
+            }
+        } */
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <div><img src="https://sv.png.pub/2026/02/09/Qmz5Lut0.png" alt=""></div>
+                <div>Zpic Client</div>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">功能特点</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#screenshots">截图预览</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#download">下载</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" target="_blank" rel="nofollow" href="https://dwz.ovh/qcdw">帮助文档</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/helloxz/zpic-client" target="_blank">GitHub</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <section class="hero">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center hero-content">
+                    <h1>Zpic Client</h1>
+                    <p class="subtitle">
+                        一款开源、实用的跨平台图床客户端，适用于
+                        <a href="https://www.imgurl.org/" target="_blank">ImgURL</a>、
+                        <a href="https://go.piclink.cc/" target="_blank">图链</a> 及
+                        <a href="https://www.zpic.pro/" target="_blank">Zpic Pro</a>
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="#download" class="btn btn-primary-custom">
+                            <i class="fas fa-download mr-2"></i>立即下载
+                        </a>
+                        <a href="https://github.com/helloxz/zpic-client" target="_blank" class="btn btn-outline-light-custom">
+                            <i class="fab fa-github mr-2"></i>查看源码
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能特点 -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>功能特点</h2>
+                <p>强大功能，满足您的图片上传需求</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <h3>跨平台支持</h3>
+                        <p>完美支持 macOS、Windows、Linux 三大主流平台，随时随地使用。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h3>批量上传</h3>
+                        <p>支持扫描目录上传，可一次性上传数千张图片，满足企业大批量上传。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <h3>URL 上传</h3>
+                        <p>支持通过图片 URL 直接上传，方便又快捷。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-paste"></i>
+                        </div>
+                        <h3>粘贴上传</h3>
+                        <p>支持Ctrl + V粘贴上传，粘贴图片后自动上传并复制链接到剪贴板。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-csv"></i>
+                        </div>
+                        <h3>表格导出</h3>
+                        <p>可将上传结果导出为 CSV 表格，方便导入其它系统。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <h3>占用低</h3>
+                        <p>使用 Golang + Wails 开发，资源占用极低，运行流畅高效。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-compress-arrows-alt"></i>
+                        </div>
+                        <h3>内置图片压缩</h3>
+                        <p>扫描上传时自动对大于 300KB 的 PNG/JPG 图片进行无损压缩。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-clone"></i>
+                        </div>
+                        <h3>图片去重</h3>
+                        <p>智能检测重复图片，自动跳过已上传的图片，避免重复占用空间。</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <h3>开源可靠</h3>
+                        <p>开放源代码，安全透明，无后门风险，您可以放心使用并参与贡献。</p>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </section>
+
+    <!-- 截图预览 -->
+    <section id="screenshots" class="screenshots">
+        <div class="container">
+            <div class="section-title">
+                <h2>截图预览</h2>
+                <p>直观展示 Zpic Client 的界面和功能</p>
+            </div>
+            <div class="screenshot-container">
+                <div id="screenshotCarousel" class="carousel slide" data-ride="carousel">
+                    <ol class="carousel-indicators">
+                        <li data-target="#screenshotCarousel" data-slide-to="0" class="active"></li>
+                        <li data-target="#screenshotCarousel" data-slide-to="1"></li>
+                        <li data-target="#screenshotCarousel" data-slide-to="2"></li>
+                        <li data-target="#screenshotCarousel" data-slide-to="3"></li>
+                    </ol>
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <img src="https://sv.png.pub/2026/02/10/7qHFNtIb.png" alt="Zpic Client 主界面" class="d-block w-100">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="https://sv.png.pub/2026/02/10/0tjn8qvJ.png" alt="批量上传功能" class="d-block w-100">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="https://sv.png.pub/2026/02/10/Srl3F3jo.png" alt="URL 上传界面" class="d-block w-100">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="https://sv.png.pub/2026/02/10/cyaqlkSC.png" alt="图片管理功能" class="d-block w-100">
+                        </div>
+                    </div>
+                    <a class="carousel-control-prev" href="#screenshotCarousel" role="button" data-slide="prev">
+                        <i class="carousel-control-prev-icon fas fa-chevron-left" aria-hidden="true"></i>
+                    </a>
+                    <a class="carousel-control-next" href="#screenshotCarousel" role="button" data-slide="next">
+                        <i class="carousel-control-next-icon fas fa-chevron-right" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 下载区域 -->
+    <section id="download" class="download">
+        <div class="container">
+            <div class="text-center">
+                <h2>立即下载</h2>
+                <p>选择适合您系统的版本开始使用</p>
+            </div>
+            <div class="download-cards">
+                <div class="download-card">
+                    <i class="top fab fa-windows text-primary"></i>
+                    <h3>Windows</h3>
+                    <p>适用于 Windows 10/11</p>
+                    <a href="https://dwz.ovh/gix9" target="_blank" class="btn btn-primary-custom">
+                        <i class="fas fa-download mr-2"></i>下载 Windows 版
+                    </a>
+                </div>
+                <div class="download-card">
+                    <i class="top fab fa-apple text-secondary"></i>
+                    <h3>macOS</h3>
+                    <p>适用于 macOS M芯片</p>
+                    <a href="https://dwz.ovh/fy0l" target="_blank" class="btn btn-primary-custom">
+                        <i class="fas fa-download mr-2"></i>下载 Mac 版
+                    </a>
+                </div>
+                <div class="download-card">
+                    <i class="top fab fa-linux text-info"></i>
+                    <h3>Linux</h3>
+                    <p>适用于主流 Linux 发行版</p>
+                    <a href="https://dwz.ovh/tdvg" target="_blank" class="btn btn-primary-custom">
+                        <i class="fas fa-download mr-2"></i>下载 Linux 版
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <strong>Zpic Client</strong> - 开源跨平台图床客户端 . 
+                    <a href="https://www.imgurl.org/" target="_blank">ImgURL</a> . 
+                    <a href="https://go.piclink.cc/" target="_blank">图链</a> . 
+                    <a href="https://www.zpic.pro/" target="_blank">Zpic Pro</a>
+
+                </div>
+                <!-- <div class="footer-links">
+                    <a href="https://www.imgurl.org/" target="_blank">ImgURL</a>
+                    <a href="https://go.piclink.cc/" target="_blank">图链</a>
+                    <a href="https://github.com/helloxz/zpic" target="_blank">GitHub</a>
+                </div> -->
+                <div class="footer-social">
+                    <a href="https://github.com/helloxz/zpic-client" target="_blank" title="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <small>&copy; 2026 Zpic Client. Open source under AGPL License.</small>
+            </div>
+        </div>
+    </footer>
+
+    <button class="back-to-top" id="backToTop" title="返回顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="https://lib.rss.ink/jquery/2.2.4/jquery.min.js"></script>
+    <script src="https://lib.rss.ink/popper/1.16.1/popper.min.js"></script>
+    <script src="https://lib.rss.ink/bootstrap/4.6.1/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.navbar-toggler').click(function() {
+                $(this).toggleClass('active');
+            });
+
+            $('a[href^="#"]:not(.carousel-control-prev):not(.carousel-control-next)').on('click', function(e) {
+                e.preventDefault();
+                var target = $(this.hash);
+                if (target.length) {
+                    $('html, body').stop().animate({
+                        scrollTop: target.offset().top - 70
+                    }, 800, 'swing');
+                }
+            });
+
+            $('.carousel').carousel({
+                interval: 5000,
+                wrap: true
+            });
+
+            $(window).scroll(function() {
+                if ($(this).scrollTop() > 50) {
+                    $('.navbar').addClass('scrolled');
+                } else {
+                    $('.navbar').removeClass('scrolled');
+                }
+
+                if ($(this).scrollTop() > 300) {
+                    $('#backToTop').addClass('show');
+                } else {
+                    $('#backToTop').removeClass('show');
+                }
+            });
+
+            $('#backToTop').click(function() {
+                $('html, body').animate({
+                    scrollTop: 0
+                }, 600, 'swing');
+            });
+        });
+    </script>
+</body>
+</html>
