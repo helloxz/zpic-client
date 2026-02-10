@@ -4,16 +4,17 @@ import (
 	"bufio"
 	"context"
 	"os"
+	"zpic-client/helper"
 )
 
 func (ac *AppCore) ClearLogs(ctx context.Context) {
 	SplitLog()
 }
 
+var logFilePath = helper.GetUserConfigDir() + "/data/logs/error.log"
+
 // 切割日志
 func SplitLog() bool {
-	// 日志文件路径
-	logFilePath := "data/logs/error.log"
 	// 只保留日志最后1万行，然后保存
 
 	const maxLines = 10000
@@ -68,8 +69,6 @@ func (ac *AppCore) GetRecentLogs() ResData {
 	go func() {
 		SplitLog()
 	}()
-	// 日志文件路径
-	logFilePath := "data/logs/error.log"
 	// 读取最后100行日志然后返回
 	const maxLines = 100
 

@@ -344,18 +344,54 @@ func (ac *AppCore) RetryTask(taskID uint) ResData {
 		}
 	}
 
-	// 4. 更新 zp_task_urls 表中对应任务ID且状态为 URLFailed 的记录为 URLPending
-	updateResult := model.DB.Model(&model.ZPTaskUrls{}).
+	// 4. 更新 zp_task_urls 表中对应任务ID且状态为 URLFailed 的记录为 URLPending（事务）
+	tx := model.DB.Begin()
+	if tx.Error != nil {
+		return ResData{
+			Status: false,
+			Msg:    "开启事务失败：" + tx.Error.Error(),
+			Data:   nil,
+		}
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	updateResult := tx.Model(&model.ZPTaskUrls{}).
 		Where("task_id = ? AND status = ?", taskID, model.URLFailed).
 		Updates(map[string]interface{}{
 			"status":     model.URLPending,
 			"updated_at": time.Now(),
 		})
-
 	if updateResult.Error != nil {
+		tx.Rollback()
 		return ResData{
 			Status: false,
 			Msg:    "更新失败文件状态失败：" + updateResult.Error.Error(),
+			Data:   nil,
+		}
+	}
+
+	// 将任务id的状态更新为Uploading
+	if err := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+		"status":     model.Uploading,
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		tx.Rollback()
+		return ResData{
+			Status: false,
+			Msg:    "更新任务状态失败：" + err.Error(),
+			Data:   nil,
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return ResData{
+			Status: false,
+			Msg:    "提交事务失败：" + err.Error(),
 			Data:   nil,
 		}
 	}
