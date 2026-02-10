@@ -52,7 +52,7 @@
             margin-right: 8px;
         }
         .navbar-nav{
-            margin-left: 6px !important;
+            margin-left: auto !important;
         }
 
         .navbar-nav .nav-link {
@@ -381,7 +381,7 @@
         .footer-links a {
             color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
-            margin-left: 1.5rem;
+            /* margin-left: 1.5rem; */
             transition: color 0.3s ease;
         }
 
@@ -468,6 +468,9 @@
         }
 
         @media (max-width: 768px) {
+            .navbar-nav{
+                margin-left:6px !important;
+            }
             .navbar-brand {
                 padding-left: 1rem;
             }
@@ -770,14 +773,18 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div>
-                    <strong>Zpic Client</strong> - 开源跨平台图床客户端
-                </div>
                 <div class="footer-links">
+                    <strong>Zpic Client</strong> - 开源跨平台图床客户端 . 
+                    <a href="https://www.imgurl.org/" target="_blank">ImgURL</a> . 
+                    <a href="https://go.piclink.cc/" target="_blank">图链</a> . 
+                    <a href="https://www.zpic.pro/" target="_blank">Zpic Pro</a>
+
+                </div>
+                <!-- <div class="footer-links">
                     <a href="https://www.imgurl.org/" target="_blank">ImgURL</a>
                     <a href="https://go.piclink.cc/" target="_blank">图链</a>
                     <a href="https://github.com/helloxz/zpic" target="_blank">GitHub</a>
-                </div>
+                </div> -->
                 <div class="footer-social">
                     <a href="https://github.com/helloxz/zpic" target="_blank" title="GitHub">
                         <i class="fab fa-github"></i>
@@ -785,7 +792,7 @@
                 </div>
             </div>
             <div class="text-center mt-4">
-                <small>&copy; 2024 Zpic Client. Open source under MIT License.</small>
+                <small>&copy; 2026 Zpic Client. Open source under AGPL License.</small>
             </div>
         </div>
     </footer>
