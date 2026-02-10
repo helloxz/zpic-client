@@ -211,7 +211,7 @@
         }
 
         .screenshot-container {
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
@@ -230,6 +230,8 @@
             width: 100%;
             height: auto;
             display: block;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
 
         .carousel-control-prev,
@@ -242,6 +244,9 @@
             transform: translateY(-50%);
             opacity: 1;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .carousel-control-prev {
@@ -267,18 +272,9 @@
             background-image: none;
             color: var(--dark-color);
             font-size: 1.5rem;
-        }
-
-        .carousel-control-prev-icon::before {
-            content: '\f053';
-            font-family: 'Font Awesome 5 Free';
-            font-weight: 900;
-        }
-
-        .carousel-control-next-icon::before {
-            content: '\f054';
-            font-family: 'Font Awesome 5 Free';
-            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .carousel-indicators {
@@ -646,7 +642,6 @@
                         <li data-target="#screenshotCarousel" data-slide-to="1"></li>
                         <li data-target="#screenshotCarousel" data-slide-to="2"></li>
                         <li data-target="#screenshotCarousel" data-slide-to="3"></li>
-                        <li data-target="#screenshotCarousel" data-slide-to="4"></li>
                     </ol>
                     <div class="carousel-inner">
                         <div class="carousel-item active">
@@ -662,13 +657,11 @@
                             <img src="https://sv.png.pub/2026/02/10/cyaqlkSC.png" alt="图片管理功能" class="d-block w-100">
                         </div>
                     </div>
-                    <a class="carousel-control-prev" href="#screenshotCarousel" role="button" data-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="sr-only">上一张</span>
+                    <a class="carousel-control-prev" href="javascript:void(0)" role="button" data-slide="prev">
+                        <i class="carousel-control-prev-icon fas fa-chevron-left" aria-hidden="true"></i>
                     </a>
-                    <a class="carousel-control-next" href="#screenshotCarousel" role="button" data-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="sr-only">下一张</span>
+                    <a class="carousel-control-next" href="javascript:void(0)" role="button" data-slide="next">
+                        <i class="carousel-control-next-icon fas fa-chevron-right" aria-hidden="true"></i>
                     </a>
                 </div>
             </div>
