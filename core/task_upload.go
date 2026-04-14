@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -53,7 +54,10 @@ func BatchUpload() {
 		ids = append(ids, url.ID)
 	}
 
-	model.DB.Model(&model.ZPTaskUrls{}).Where("id IN ?", ids).Update("status", model.URLUploading)
+	if updateResult := model.DB.Model(&model.ZPTaskUrls{}).Where("id IN ?", ids).Update("status", model.URLUploading); updateResult.Error != nil {
+		helper.WriteLog("BatchUpload: 更新状态失败：" + updateResult.Error.Error())
+		return
+	}
 
 	results := make(chan uploadResult, len(urls))
 	for _, url := range urls {
@@ -69,6 +73,7 @@ func BatchUpload() {
 		}()
 	}
 
+	var uploadResults []uploadResult
 	var tempFiles []string
 	for i := 0; i < len(urls); i++ {
 		r := <-results
@@ -79,14 +84,12 @@ func BatchUpload() {
 	}
 	close(results)
 
-	batchUpdateResults()
+	batchUpdateResults(uploadResults)
 	cleanupTempFiles(tempFiles)
 }
 
-var uploadResults []uploadResult
-
 // batchUpdateResults 批量更新上传结果
-func batchUpdateResults() {
+func batchUpdateResults(uploadResults []uploadResult) {
 	updatedCount := 0
 	for _, r := range uploadResults {
 		updateData := map[string]interface{}{
@@ -111,18 +114,12 @@ func batchUpdateResults() {
 			updatedCount++
 		}
 	}
-
-	uploadResults = nil
 }
 
 // processAndUpload 处理单个URL记录并上传
 // 返回上传结果
 func processAndUpload(url model.ZPTaskUrls) uploadResult {
 	filePath := url.OriginPath
-
-	// if _, err := os.Stat(filePath); os.IsNotExist(err) {
-	// 	filePath = url.TempPath
-	// }
 
 	exists := true
 	if filePath == "" {
@@ -132,6 +129,7 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 	}
 
 	if !exists {
+		helper.WriteLog(fmt.Sprintf("processAndUpload: 文件不存在，ID=%d，路径=%s", url.ID, filePath))
 		return uploadResult{
 			ID:    url.ID,
 			Error: "文件不存在",
@@ -140,6 +138,7 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 
 	processedPath, err := processFile(filePath, url.FileName)
 	if err != nil {
+		helper.WriteLog(fmt.Sprintf("processAndUpload: 文件处理失败，ID=%d，错误=%v", url.ID, err))
 		return uploadResult{
 			ID:    url.ID,
 			Error: err.Error(),
@@ -165,6 +164,7 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 		}
 	}
 
+	helper.WriteLog(fmt.Sprintf("processAndUpload: 上传失败，ID=%d，文件=%s", url.ID, url.FileName))
 	return uploadResult{
 		ID:           url.ID,
 		Success:      false,
@@ -206,6 +206,9 @@ func processFile(filePath string, fileName string) (string, error) {
 
 // compressJpeg 压缩JPEG图片
 func compressJpeg(srcPath string, destPath string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	binDir := getBinDir()
 
 	optimizePath := filepath.Join(binDir, "jpegoptim")
@@ -215,12 +218,15 @@ func compressJpeg(srcPath string, destPath string) (string, error) {
 
 	destDir := filepath.Dir(destPath)
 
-	cmd := exec.Command(optimizePath, "--max=80", "-s", "--all-progressive", srcPath, "-d", destDir)
-	// 跨平台隐藏窗口
+	cmd := exec.CommandContext(ctx, optimizePath, "--max=80", "-s", "--all-progressive", srcPath, "-d", destDir)
 	hideWindow(cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		helper.WriteLog(fmt.Sprintf("jpegoptim压缩失败: err=%v, output=%s", err, string(output)))
+		if ctx.Err() == context.DeadlineExceeded {
+			helper.WriteLog(fmt.Sprintf("jpegoptim压缩超时(60s): 文件=%s", srcPath))
+		} else {
+			helper.WriteLog(fmt.Sprintf("jpegoptim压缩失败: err=%v, output=%s", err, string(output)))
+		}
 		return copyFile(srcPath, destPath)
 	}
 
@@ -229,6 +235,9 @@ func compressJpeg(srcPath string, destPath string) (string, error) {
 
 // compressPng 压缩PNG图片
 func compressPng(srcPath string, destPath string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	binDir := getBinDir()
 
 	optimizePath := filepath.Join(binDir, "oxipng")
@@ -236,18 +245,21 @@ func compressPng(srcPath string, destPath string) (string, error) {
 		optimizePath += ".exe"
 	}
 
-	cmd := exec.Command(optimizePath,
+	cmd := exec.CommandContext(ctx, optimizePath,
 		"-o", "3",
 		"--strip", "safe",
 		"-t", "1",
 		"--out", destPath,
 		srcPath,
 	)
-	// 跨平台隐藏窗口
 	hideWindow(cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		helper.WriteLog(fmt.Sprintf("oxipng压缩失败: err=%v, output=%s", err, string(output)))
+		if ctx.Err() == context.DeadlineExceeded {
+			helper.WriteLog(fmt.Sprintf("oxipng压缩超时(60s): 文件=%s", srcPath))
+		} else {
+			helper.WriteLog(fmt.Sprintf("oxipng压缩失败: err=%v, output=%s", err, string(output)))
+		}
 		return copyFile(srcPath, destPath)
 	}
 
