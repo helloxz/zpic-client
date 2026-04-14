@@ -3,7 +3,10 @@ package core
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"zpic-client/helper"
 )
 
@@ -12,6 +15,29 @@ func (ac *AppCore) ClearLogs(ctx context.Context) {
 }
 
 var logFilePath = helper.GetUserConfigDir() + "/data/logs/error.log"
+
+// 打开日志目录
+func (ac *AppCore) OpenLogDirectory() error {
+	var cmd *exec.Cmd
+	path := helper.GetUserConfigDir() + "/data/logs"
+
+	switch runtime.GOOS {
+	case "windows":
+		// Windows: explorer [路径]
+		cmd = exec.Command("explorer", path)
+	case "darwin":
+		// macOS: open [路径]
+		cmd = exec.Command("open", path)
+	case "linux":
+		// Linux: xdg-open [路径]
+		cmd = exec.Command("xdg-open", path)
+	default:
+		return fmt.Errorf("不支持的平台: %s", runtime.GOOS)
+	}
+
+	// 使用 Start() 而不是 Run()，这样不会阻塞前端界面
+	return cmd.Start()
+}
 
 // 切割日志
 func SplitLog() bool {

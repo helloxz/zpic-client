@@ -62,6 +62,10 @@ export function GetUrlsList(arg1) {
   return window['go']['core']['AppCore']['GetUrlsList'](arg1);
 }
 
+export function OpenLogDirectory() {
+  return window['go']['core']['AppCore']['OpenLogDirectory']();
+}
+
 export function RetryTask(arg1) {
   return window['go']['core']['AppCore']['RetryTask'](arg1);
 }

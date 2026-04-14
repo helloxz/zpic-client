@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { NCard, NLog, NSpin, NEmpty } from 'naive-ui'
-import { GetRecentLogs } from '../../wailsjs/go/core/AppCore'
+import { NCard, NLog, NSpin, NEmpty, NButton, NIcon } from 'naive-ui'
+import { GetRecentLogs, OpenLogDirectory } from '../../wailsjs/go/core/AppCore'
 import { useMessage } from 'naive-ui'
+import { FolderOpenOutline } from '@vicons/ionicons5'
 
 const message = useMessage()
 
@@ -35,7 +36,10 @@ function handleReachBottom() {
   message.info('Reach Bottom')
 }
 
-// 组件挂载时获取日志数据
+const handleOpenLogDirectory = async () => {
+  await OpenLogDirectory()
+}
+
 onMounted(() => {
   fetchLogs()
 })
@@ -45,8 +49,18 @@ onMounted(() => {
   <div class="log-page">
     <!-- 页面标题区域 -->
     <div class="page-header">
-      <h1>日志</h1>
-      <p class="subtitle">查看应用程序错误日志</p>
+      <div class="header-row">
+        <div class="header-text">
+          <h1>日志</h1>
+          <p class="subtitle">查看应用程序错误日志</p>
+        </div>
+        <n-button quaternary @click="handleOpenLogDirectory">
+          <template #icon>
+            <n-icon :component="FolderOpenOutline" />
+          </template>
+          打开日志目录
+        </n-button>
+      </div>
     </div>
 
     <!-- 日志卡片 - 高度占满整个窗口 -->
@@ -80,6 +94,12 @@ onMounted(() => {
 .page-header {
   margin-bottom: 18px;
   flex-shrink: 0;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .page-header h1 {

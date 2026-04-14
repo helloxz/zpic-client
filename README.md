@@ -23,6 +23,38 @@ Zpic Client是一款开源、实用的跨平台图床客户端，适用于 [ImgU
 
 ![CleanShot 2026-02-10 at 09.34.33@2x.png](https://v.uuu.ovh/2026/02/10/cyaqlkSC.png)
 
+## 开发环境
+
+### 后端依赖
+
+- **Go**: 1.24.0 或更高版本
+- **Wails**: v2.11.0
+
+
+### 前端依赖
+
+- **Node.js**: 18.0 或更高版本
+- **pnpm**: 8.0 或更高版本
+- **Vue**: 3.2+
+- **Vite**: 3.0+
+
+
+## 编译指令
+
+### 开发模式
+
+```bash
+# 启动完整应用开发模式（前后端热重载）
+wails dev
+```
+
+### 生产构建
+
+```bash
+# 构建完整应用
+wails build
+```
+
 ## 联系我们
 
 * 博客：[https://blog.xiaoz.org/](https://blog.xiaoz.org/)

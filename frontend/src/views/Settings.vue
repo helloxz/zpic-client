@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import { NCard, NForm, NFormItem, NInput, NSelect, NButton, NIcon, NAlert, NTooltip } from 'naive-ui'
 import { SaveOutline, RefreshOutline, InformationCircleOutline } from '@vicons/ionicons5'
 import { UpdateSetting, GetSetting } from '../../wailsjs/go/core/AppCore'
@@ -131,11 +131,6 @@ const handleServerChange = (value: string) => {
   }
 }
 
-watch(() => form.value.server, (newVal) => {
-  handleServerChange(newVal)
-})
-
-
 const handleSave = async () => {
   try {
     await formRef.value.validate()
@@ -225,6 +220,7 @@ onMounted(() => {
             v-model:value="form.server"
             :options="serverOptions"
             placeholder="请选择服务器"
+            @update:value="handleServerChange"
           />
         </NFormItem>
 
