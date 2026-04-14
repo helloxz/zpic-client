@@ -11,7 +11,7 @@ import (
 // 记录日志到文件
 func WriteLog(log_content string) {
 	// 日志文件目录
-	log_dir := "data/logs"
+	log_dir := GetUserConfigDir() + "/data/logs"
 	// 检查日志目录是否存在，不存在则创建
 	if _, err := os.Stat(log_dir); os.IsNotExist(err) {
 		// 目录不存在，创建目录
@@ -23,7 +23,7 @@ func WriteLog(log_content string) {
 	}
 
 	// 打开一个文件，如果文件不存在，则会创建一个新文件，如果文件存在，则会在文件末尾追加内容
-	file, err := os.OpenFile("data/logs/error.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	file, err := os.OpenFile(log_dir+"/error.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println(err)
 	}

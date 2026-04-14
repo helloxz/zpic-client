@@ -318,6 +318,7 @@ func scanDirectory(scanPath string) ([]FileInfo, error) {
 		// 获取文件信息
 		info, err := entry.Info()
 		if err != nil {
+			helper.WriteLog("scanDirectory: 获取文件信息失败，文件: " + fullPath + "，错误: " + err.Error())
 			continue
 		}
 
@@ -332,6 +333,7 @@ func scanDirectory(scanPath string) ([]FileInfo, error) {
 		// 获取文件hash
 		fileHash, err := getFileHash(fullPath)
 		if err != nil {
+			helper.WriteLog("scanDirectory: 获取文件hash失败，文件: " + fullPath + "，错误: " + err.Error())
 			continue
 		}
 
