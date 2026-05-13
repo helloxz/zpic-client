@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -225,6 +226,28 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		}
 
 		if len(taskUrls) > 0 {
+			// 预检测：查询已存在的hash，记录将被跳过的重复文件
+			hashes := make([]string, len(taskUrls))
+			for i, tu := range taskUrls {
+				hashes[i] = tu.FileHash
+			}
+
+			var existingHashes []string
+			if err := tx.Model(&model.ZPTaskUrls{}).Where("file_hash IN ?", hashes).Pluck("file_hash", &existingHashes).Error; err != nil {
+				return err
+			}
+
+			existingSet := make(map[string]bool, len(existingHashes))
+			for _, h := range existingHashes {
+				existingSet[h] = true
+			}
+
+			for _, tu := range taskUrls {
+				if existingSet[tu.FileHash] {
+					helper.WriteLog(fmt.Sprintf("ScanTaskURLS: 重复文件被跳过，文件名=%s，hash=%s，路径=%s", tu.FileName, tu.FileHash, tu.OriginPath))
+				}
+			}
+
 			// 使用Clauses配置INSERT OR IGNORE，处理重复hash
 			if createResult := tx.Clauses(&clause.Insert{
 				Modifier: "OR IGNORE",
@@ -240,8 +263,6 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		}
 		// 如果插入的数量是0，说明存在重复，直接将任务状态更新为完成
 		if insertedCount == 0 {
-			//fmt.Println("到这里了吗？")
-			fmt.Println(taskID)
 			if updateResult := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
 				"status":     model.UploadCompleted,
 				"updated_at": time.Now(),
@@ -278,7 +299,14 @@ type FileInfo struct {
 	FileHash string // 文件hash
 }
 
-// scanDirectory 扫描指定目录下的图片文件
+// fileMeta 扫描阶段收集的文件元信息（不含hash）
+type fileMeta struct {
+	fullPath string
+	fileName string
+	fileSize int64
+}
+
+// scanDirectory 扫描指定目录下的图片文件（两阶段：收集元信息 → 分批hash）
 // scanPath: 要扫描的目录路径
 // 返回扫描到的文件信息列表和错误信息
 // 扫描规则：
@@ -286,96 +314,132 @@ type FileInfo struct {
 //   - 文件大小不能超过10MB
 //   - 不递归扫描子目录
 func scanDirectory(scanPath string) ([]FileInfo, error) {
-	var files []FileInfo
-
-	// 读取目录下的所有条目
+	// Phase 1: 收集文件元信息（不读取文件内容）
 	entries, err := os.ReadDir(scanPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// 遍历目录条目
+	var fileList []fileMeta
 	for _, entry := range entries {
-		// 只处理文件，不处理子目录
 		if entry.IsDir() {
 			continue
 		}
 
-		// 获取文件名
 		fileName := entry.Name()
-
-		// 获取文件扩展名（转小写）
 		ext := strings.ToLower(filepath.Ext(fileName))
-
-		// 检查文件扩展名是否在允许列表中
 		if !allowedExtensions[ext] {
+			helper.WriteLog("scanDirectory: 跳过不支持的文件类型，文件: " + fileName)
 			continue
 		}
 
-		// 获取文件的完整路径
 		fullPath := filepath.Join(scanPath, fileName)
 
-		// 获取文件信息
 		info, err := entry.Info()
 		if err != nil {
 			helper.WriteLog("scanDirectory: 获取文件信息失败，文件: " + fullPath + "，错误: " + err.Error())
 			continue
 		}
 
-		// 获取文件大小
 		fileSize := info.Size()
-
-		// 检查文件大小是否超过10MB
 		if fileSize > MaxFileSize {
+			helper.WriteLog(fmt.Sprintf("scanDirectory: 跳过超大文件(>10MB)，文件: %s，大小: %d字节", fullPath, fileSize))
 			continue
 		}
 
-		// 获取文件hash
-		fileHash, err := getFileHash(fullPath)
-		if err != nil {
-			helper.WriteLog("scanDirectory: 获取文件hash失败，文件: " + fullPath + "，错误: " + err.Error())
-			continue
-		}
-
-		// 添加到文件列表
-		files = append(files, FileInfo{
-			FullPath: fullPath,
-			FileName: fileName,
-			FileSize: fileSize,
-			FileHash: fileHash,
+		fileList = append(fileList, fileMeta{
+			fullPath: fullPath,
+			fileName: fileName,
+			fileSize: fileSize,
 		})
+	}
+
+	if len(fileList) == 0 {
+		return nil, nil
+	}
+
+	// Phase 2: 分批计算hash（每批最多100个文件）
+	batchSize := 100
+	var files []FileInfo
+
+	for i := 0; i < len(fileList); i += batchSize {
+		end := i + batchSize
+		if end > len(fileList) {
+			end = len(fileList)
+		}
+		batch := fileList[i:end]
+
+		for _, meta := range batch {
+			fileHash, err := getFileHash(meta.fullPath)
+			if err != nil {
+				helper.WriteLog("scanDirectory: 获取文件hash失败，文件: " + meta.fullPath + "，错误: " + err.Error())
+				continue
+			}
+			files = append(files, FileInfo{
+				FullPath: meta.fullPath,
+				FileName: meta.fileName,
+				FileSize: meta.fileSize,
+				FileHash: fileHash,
+			})
+		}
+
+		// 每批处理完后短暂休眠，缓解磁盘 I/O 压力
+		if end < len(fileList) {
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 
 	return files, nil
 }
 
 // getFileHash 计算文件的hash值
-// 使用xxh3算法计算文件的哈希值
+// 使用轻量读取策略：文件大小 + 前64KB + 后64KB 做 xxh3，避免全量 I/O
 // filePath: 文件的完整路径
 // 返回文件的hash值
 func getFileHash(filePath string) (string, error) {
-	// 打开文件
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 
-	// 计算文件hash（xxh3算法）
-	hasher := xxh3.New()
-	if _, err := io.Copy(hasher, file); err != nil {
+	info, err := file.Stat()
+	if err != nil {
 		return "", err
 	}
-	fileHash := fmt.Sprintf("%x", hasher.Sum64())
+	fileSize := info.Size()
 
-	return fileHash, nil
+	hasher := xxh3.New()
+
+	// 写入文件大小（8字节），不同大小的文件即使头尾相同也不会碰撞
+	if err := binary.Write(hasher, binary.LittleEndian, fileSize); err != nil {
+		return "", err
+	}
+
+	// 读取前 64KB
+	headSize := int64(64 * 1024)
+	if headSize > fileSize {
+		headSize = fileSize
+	}
+	if _, err := io.CopyN(hasher, file, headSize); err != nil {
+		return "", err
+	}
+
+	// 文件超过 128KB 时，读取尾部 64KB
+	if fileSize > 128*1024 {
+		tailSize := int64(64 * 1024)
+		if _, err := file.Seek(fileSize-tailSize, io.SeekStart); err != nil {
+			return "", err
+		}
+		if _, err := io.CopyN(hasher, file, tailSize); err != nil {
+			return "", err
+		}
+	}
+
+	return fmt.Sprintf("%x", hasher.Sum64()), nil
 }
 
-// hexEncodeToString 将hash值转换为十六进制字符串
-// 用于将xxh3计算得到的hash值转换为可存储的字符串格式
-func hexEncodeToString(hash [16]byte) string {
-	return fmt.Sprintf("%x", hash)
-}
+
 
 // DeleteTasksParams 删除任务的请求参数
 // Ids: 要删除的任务ID数组

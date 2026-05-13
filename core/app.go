@@ -5,7 +5,7 @@ import (
 	"runtime"
 )
 
-var VERSION = "1.1.0"
+var VERSION = "1.2.0"
 
 type AppCore struct {
 	ctx context.Context
