@@ -236,7 +236,7 @@ const autoCopy = (url: string, filename: string) => {
       text = `<img title="${filename}" src="${url}" alt="" />`
       break
     case 'markdown':
-      text = `![${filename}](${url})`
+      text = `![](${url})`
       break
     case 'bbcode':
       text = `[img]${url}[/img]`
@@ -317,7 +317,7 @@ const handleCopy = (key: string, url: string, thumbnailUrl: string) => {
       text = `<img src="${url}" alt="" />`
       break
     case 'markdown':
-      text = `![${thumbnailUrl}](${url})`
+      text = `![](${url})`
       break
     case 'bbcode':
       text = `[img]${url}[/img]`
