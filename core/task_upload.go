@@ -428,3 +428,99 @@ func (ac *AppCore) RetryTask(taskID uint) ResData {
 		Data:   nil,
 	}
 }
+
+// PauseTask 暂停上传任务
+// 将任务下所有待上传(status=0)的URL批量更新为暂停(status=4)
+// 同时将任务状态更新为暂停(Paused=4)
+func (ac *AppCore) PauseTask(taskID uint) ResData {
+	var task model.ZPtasks
+	if err := model.DB.First(&task, taskID).Error; err != nil {
+		return ResData{Status: false, Msg: "任务不存在", Data: nil}
+	}
+
+	if task.Status != model.ScanCompleted && task.Status != model.Uploading {
+		return ResData{Status: false, Msg: "当前状态不支持暂停", Data: nil}
+	}
+
+	tx := model.DB.Begin()
+	if tx.Error != nil {
+		return ResData{Status: false, Msg: "开启事务失败：" + tx.Error.Error(), Data: nil}
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	// 将待上传的URL更新为暂停
+	if err := tx.Model(&model.ZPTaskUrls{}).
+		Where("task_id = ? AND status = ?", taskID, model.URLPending).
+		Update("status", model.URLPaused).Error; err != nil {
+		tx.Rollback()
+		return ResData{Status: false, Msg: "更新URL状态失败：" + err.Error(), Data: nil}
+	}
+
+	// 更新任务状态为暂停
+	if err := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+		"status":     model.Paused,
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		tx.Rollback()
+		return ResData{Status: false, Msg: "更新任务状态失败：" + err.Error(), Data: nil}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return ResData{Status: false, Msg: "提交事务失败：" + err.Error(), Data: nil}
+	}
+
+	return ResData{Status: true, Msg: "任务已暂停", Data: nil}
+}
+
+// ResumeTask 恢复暂停的上传任务
+// 将任务下所有暂停(status=4)的URL批量恢复为待上传(status=0)
+// 同时将任务状态恢复为扫描完成(ScanCompleted=1)，由定时任务自动判断后续状态
+func (ac *AppCore) ResumeTask(taskID uint) ResData {
+	var task model.ZPtasks
+	if err := model.DB.First(&task, taskID).Error; err != nil {
+		return ResData{Status: false, Msg: "任务不存在", Data: nil}
+	}
+
+	if task.Status != model.Paused {
+		return ResData{Status: false, Msg: "当前状态不支持恢复", Data: nil}
+	}
+
+	tx := model.DB.Begin()
+	if tx.Error != nil {
+		return ResData{Status: false, Msg: "开启事务失败：" + tx.Error.Error(), Data: nil}
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	// 将暂停的URL恢复为待上传
+	if err := tx.Model(&model.ZPTaskUrls{}).
+		Where("task_id = ? AND status = ?", taskID, model.URLPaused).
+		Update("status", model.URLPending).Error; err != nil {
+		tx.Rollback()
+		return ResData{Status: false, Msg: "更新URL状态失败：" + err.Error(), Data: nil}
+	}
+
+	// 恢复任务状态为扫描完成
+	if err := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+		"status":     model.ScanCompleted,
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		tx.Rollback()
+		return ResData{Status: false, Msg: "更新任务状态失败：" + err.Error(), Data: nil}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return ResData{Status: false, Msg: "提交事务失败：" + err.Error(), Data: nil}
+	}
+
+	return ResData{Status: true, Msg: "任务已恢复", Data: nil}
+}

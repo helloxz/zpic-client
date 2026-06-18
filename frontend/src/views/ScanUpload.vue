@@ -25,9 +25,11 @@ import {
   TrashBinOutline,
   RefreshOutline,
   DownloadOutline,
-  FolderOpenOutline
+  FolderOpenOutline,
+  PauseOutline,
+  PlayOutline
 } from '@vicons/ionicons5'
-import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory, RetryTask, ExportTaskURLS } from '../../wailsjs/go/core/AppCore'
+import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory, RetryTask, ExportTaskURLS, PauseTask, ResumeTask } from '../../wailsjs/go/core/AppCore'
 import { useBaseStore } from '../stores/base'
 
 interface TaskItem {
@@ -188,7 +190,8 @@ function createColumns(): DataTableColumns<TaskItem> {
           0: { type: 'default', text: '待扫描' },
           1: { type: 'warning', text: '等待中' },
           2: { type: 'warning', text: '上传中' },
-          3: { type: 'success', text: '完成' }
+          3: { type: 'success', text: '完成' },
+          4: { type: 'warning', text: '暂停' }
         }
         const config = statusMap[row.status] || { type: 'default', text: '未知' }
         return h(NTag, { type: config.type, size: 'small' }, () => config.text)
@@ -197,13 +200,47 @@ function createColumns(): DataTableColumns<TaskItem> {
     {
       title: '操作',
       key: 'actions',
-      width: 90,
+      width: 100,
       fixed: 'right',
       render(row) {
+        const canPause = row.status === 1 || row.status === 2
+        const canResume = row.status === 4
         const canRetry = row.status === 3 && row.failed_num > 0
         const canExport = row.status === 3
 
+        const pauseResumeBtn = canResume
+          ? h(NTooltip, { trigger: 'hover' }, {
+              trigger: () =>
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    quaternary: true,
+                    type: 'success',
+                    onClick: () => handleResumeTask(row)
+                  },
+                  { icon: () => h(NIcon, null, () => h(PlayOutline)) }
+                ),
+              default: () => '恢复任务'
+            })
+          : h(NTooltip, { trigger: 'hover' }, {
+              trigger: () =>
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    quaternary: true,
+                    type: 'warning',
+                    disabled: !canPause,
+                    onClick: () => handlePauseTask(row)
+                  },
+                  { icon: () => h(NIcon, null, () => h(PauseOutline)) }
+                ),
+              default: () => canPause ? '暂停任务' : (row.status === 0 ? '任务未开始' : '任务已完成')
+            })
+
         return h('div', { style: { display: 'flex', gap: '4px' } }, [
+          pauseResumeBtn,
           h(NTooltip, { trigger: 'hover' }, {
             trigger: () =>
               h(
@@ -365,6 +402,36 @@ const handleExportTask = async (row: TaskItem) => {
   } catch (err) {
     console.error('导出失败:', err)
     message.error(err instanceof Error ? err.message : '导出失败，请稍后重试')
+  }
+}
+
+const handlePauseTask = async (row: TaskItem) => {
+  try {
+    const res = await PauseTask(row.id)
+    if (res.status) {
+      message.success(res.msg || '暂停成功')
+      fetchData()
+    } else {
+      message.error(res.msg || '暂停失败')
+    }
+  } catch (err) {
+    console.error('暂停失败:', err)
+    message.error(err instanceof Error ? err.message : '暂停失败，请稍后重试')
+  }
+}
+
+const handleResumeTask = async (row: TaskItem) => {
+  try {
+    const res = await ResumeTask(row.id)
+    if (res.status) {
+      message.success(res.msg || '恢复成功')
+      fetchData()
+    } else {
+      message.error(res.msg || '恢复失败')
+    }
+  } catch (err) {
+    console.error('恢复失败:', err)
+    message.error(err instanceof Error ? err.message : '恢复失败，请稍后重试')
   }
 }
 

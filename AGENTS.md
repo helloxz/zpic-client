@@ -98,6 +98,38 @@
 3. 遵循一致的 CSS 类命名约定（例如 BEM）
 4. 适当使用相对单位（rem, em）而非绝对单位（px）
 
+## 定时任务
+
+定时任务入口文件：`app.go`
+
+### 启动位置
+
+在 `App.startup()` 方法中通过 goroutine 启动（`app.go:49-51`）：
+```go
+go func() {
+    crontab(a)
+}()
+```
+
+### 定时任务定义
+
+`crontab()` 函数（`app.go:60-82`）定义所有定时任务，使用 `github.com/robfig/cron/v3` 库（支持秒级精度）：
+
+| 间隔 | 函数 | 作用 |
+|------|------|------|
+| 40秒 | `core.UploadTaskList()` | URL上传任务 |
+| 35秒 | `core.BatchUpload()` | 批量上传 |
+| 20秒 | `core.UpdateOneTaskBatch(2)` | 更新上传状态 |
+
+### 添加新定时任务
+
+在 `crontab()` 函数中使用 `c.AddFunc()` 添加：
+```go
+c.AddFunc("@every 30s", func() {
+    // 任务逻辑
+})
+```
+
 ## 项目结构
 
 - `/` - 根目录，包含 Go 后端文件和 Wails 配置

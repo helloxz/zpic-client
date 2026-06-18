@@ -34,6 +34,10 @@ export function GetUrlsList(arg1:core.UrlsList):Promise<core.ResData>;
 
 export function OpenLogDirectory():Promise<void>;
 
+export function PauseTask(arg1:number):Promise<core.ResData>;
+
+export function ResumeTask(arg1:number):Promise<core.ResData>;
+
 export function RetryTask(arg1:number):Promise<core.ResData>;
 
 export function SelectScanDirectory():Promise<string>;

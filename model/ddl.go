@@ -39,6 +39,8 @@ const (
 	Uploading = 2
 	// 上传完成
 	UploadCompleted = 3
+	// 暂停
+	Paused = 4
 )
 
 // 任务表接口
@@ -64,6 +66,7 @@ const (
 	URLUploading = 1 // 上传中
 	URLSuccess   = 2 // 成功
 	URLFailed    = 3 // 失败
+	URLPaused    = 4 // 暂停
 )
 
 // 任务表里面的URL

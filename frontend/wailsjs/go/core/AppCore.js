@@ -66,6 +66,14 @@ export function OpenLogDirectory() {
   return window['go']['core']['AppCore']['OpenLogDirectory']();
 }
 
+export function PauseTask(arg1) {
+  return window['go']['core']['AppCore']['PauseTask'](arg1);
+}
+
+export function ResumeTask(arg1) {
+  return window['go']['core']['AppCore']['ResumeTask'](arg1);
+}
+
 export function RetryTask(arg1) {
   return window['go']['core']['AppCore']['RetryTask'](arg1);
 }
