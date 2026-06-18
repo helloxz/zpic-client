@@ -2,6 +2,7 @@ export namespace core {
 	
 	export class AddScanTaskParams {
 	    path: string;
+	    album_id: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new AddScanTaskParams(source);
@@ -10,6 +11,7 @@ export namespace core {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
+	        this.album_id = source["album_id"];
 	    }
 	}
 	export class DeleteTasksParams {

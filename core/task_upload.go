@@ -59,16 +59,30 @@ func BatchUpload() {
 		return
 	}
 
+	// 批量查询每个任务的 album_id
+	taskIDs := make(map[uint]bool)
+	for _, url := range urls {
+		taskIDs[url.TaskID] = true
+	}
+	albumMap := make(map[uint]int64)
+	for taskID := range taskIDs {
+		var task model.ZPtasks
+		if err := model.DB.Select("album_id").First(&task, taskID).Error; err == nil {
+			albumMap[taskID] = int64(task.AlbumID)
+		}
+	}
+
 	results := make(chan uploadResult, len(urls))
 	for _, url := range urls {
 		u := url
+		albumID := albumMap[u.TaskID]
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
 					results <- uploadResult{ID: u.ID, Success: false, Error: fmt.Sprintf("panic: %v", r)}
 				}
 			}()
-			r := processAndUpload(u)
+			r := processAndUpload(u, albumID)
 			results <- r
 		}()
 	}
@@ -118,7 +132,7 @@ func batchUpdateResults(uploadResults []uploadResult) {
 
 // processAndUpload 处理单个URL记录并上传
 // 返回上传结果
-func processAndUpload(url model.ZPTaskUrls) uploadResult {
+func processAndUpload(url model.ZPTaskUrls, albumID int64) uploadResult {
 	filePath := url.OriginPath
 
 	exists := true
@@ -147,7 +161,7 @@ func processAndUpload(url model.ZPTaskUrls) uploadResult {
 
 	req := UploadReq{
 		FilePath: processedPath,
-		AlbumID:  0,
+		AlbumID:  albumID,
 	}
 	success, uploadResp := UploadZpic(req)
 

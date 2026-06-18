@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, h, reactive } from 'vue'
+import { ref, onMounted, onBeforeUnmount, h, reactive, computed } from 'vue'
 import type { DataTableColumns, PaginationProps } from 'naive-ui'
 // import { EventsOn, EventsOff } from '@wailsapp/runtime'
 import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime"
@@ -12,15 +12,23 @@ import {
   NTag,
   NTooltip,
   NPopconfirm,
+  NDropdown,
+  NModal,
+  NSelect,
+  NForm,
+  NFormItem,
+  NSpace,
   useMessage
 } from 'naive-ui'
 import {
   ScanOutline,
   TrashBinOutline,
   RefreshOutline,
-  DownloadOutline
+  DownloadOutline,
+  FolderOpenOutline
 } from '@vicons/ionicons5'
 import { GetScanList, AddScanTask, DeleteTasks, SelectScanDirectory, RetryTask, ExportTaskURLS } from '../../wailsjs/go/core/AppCore'
+import { useBaseStore } from '../stores/base'
 
 interface TaskItem {
   id: number
@@ -34,9 +42,25 @@ interface TaskItem {
 }
 
 const message = useMessage()
+const baseStore = useBaseStore()
 const loading = ref(false)
 const checkedRowKeys = ref<number[]>([])
 const refreshTimer = ref<number | null>(null)
+
+const showAlbumModal = ref(false)
+const selectedAlbumId = ref<number | null>(null)
+const selectedFolderPath = ref('')
+
+const albumOptions = computed(() =>
+  baseStore.albumList.map((item) => ({
+    label: item.name,
+    value: item.id
+  }))
+)
+
+const scanCanSubmit = computed(() =>
+  selectedAlbumId.value !== null && selectedFolderPath.value !== ''
+)
 
 const pagination = reactive<PaginationProps>({
   page: 1,
@@ -249,6 +273,50 @@ const handleScanUpload = async () => {
   }
 }
 
+const scanDropdownOptions = [
+  { label: '默认相册', key: 'default' },
+  { label: '指定相册', key: 'specific' }
+]
+
+const handleScanDropdownSelect = (key: string) => {
+  if (key === 'default') {
+    handleScanUpload()
+  } else if (key === 'specific') {
+    selectedAlbumId.value = null
+    selectedFolderPath.value = ''
+    showAlbumModal.value = true
+  }
+}
+
+const handleSelectFolder = async () => {
+  try {
+    const path = await SelectScanDirectory()
+    if (path) {
+      selectedFolderPath.value = path
+    }
+  } catch (err) {
+    console.error('选择目录失败:', err)
+    message.error('选择目录失败')
+  }
+}
+
+const handleAlbumScanSubmit = async () => {
+  if (!selectedAlbumId.value || !selectedFolderPath.value) return
+  try {
+    const res = await AddScanTask({ path: selectedFolderPath.value, album_id: selectedAlbumId.value })
+    if (res.status) {
+      message.success('任务创建成功')
+      showAlbumModal.value = false
+      fetchData()
+    } else {
+      message.error(res.msg || '创建失败')
+    }
+  } catch (err) {
+    console.error('创建任务失败:', err)
+    message.error('创建任务失败')
+  }
+}
+
 const handleDeleteConfirm = async () => {
   if (!checkedRowKeys.value.length) return
 
@@ -302,6 +370,7 @@ const handleExportTask = async (row: TaskItem) => {
 
 onMounted(() => {
   fetchData()
+  baseStore.fetchAlbumList()
   if (refreshTimer.value !== null) return
   // refreshTimer.value = window.setInterval(() => {
   //   fetchData()
@@ -325,10 +394,12 @@ onBeforeUnmount(() => {
     <NCard class="content-card">
       <div class="toolbar">
         <div class="toolbar-actions">
-          <NButton type="primary" @click="handleScanUpload">
-            <template #icon><NIcon><ScanOutline /></NIcon></template>
-            扫描上传
-          </NButton>
+          <NDropdown :options="scanDropdownOptions" trigger="hover" @select="handleScanDropdownSelect">
+            <NButton type="primary">
+              <template #icon><NIcon><ScanOutline /></NIcon></template>
+              扫描上传
+            </NButton>
+          </NDropdown>
 
           <NPopconfirm
             @positive-click="handleDeleteConfirm"
@@ -365,6 +436,36 @@ onBeforeUnmount(() => {
         remote
       />
     </NCard>
+
+    <NModal v-model:show="showAlbumModal" preset="card" title="指定相册扫描入库" style="width: 480px" :bordered="false">
+      <NForm label-placement="top">
+        <NFormItem label="选择相册">
+          <NSelect
+            v-model:value="selectedAlbumId"
+            :options="albumOptions"
+            placeholder="请选择相册"
+          />
+        </NFormItem>
+        <NFormItem label="扫描目录">
+          <NSpace>
+            <NButton @click="handleSelectFolder">
+              <template #icon><NIcon><FolderOpenOutline /></NIcon></template>
+              选择文件夹
+            </NButton>
+            <span v-if="selectedFolderPath" style="color: #666; font-size: 13px; line-height: 34px;">
+              {{ selectedFolderPath }}
+            </span>
+          </NSpace>
+        </NFormItem>
+      </NForm>
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end;">
+          <NButton type="primary" :disabled="!scanCanSubmit" @click="handleAlbumScanSubmit">
+            扫描入库
+          </NButton>
+        </div>
+      </template>
+    </NModal>
   </div>
 </template>
 

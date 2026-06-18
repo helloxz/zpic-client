@@ -106,8 +106,10 @@ func (ac *AppCore) GetScanList(params ScanListParams) ResData {
 
 // AddScanTaskParams 添加扫描任务的请求参数
 // Path: 要扫描的目录路径
+// AlbumID: 指定相册ID，默认为0（默认相册）
 type AddScanTaskParams struct {
-	Path string `json:"path"`
+	Path    string `json:"path"`
+	AlbumID int    `json:"album_id"`
 }
 
 // AddScanTask 添加扫描任务
@@ -132,6 +134,7 @@ func (ac *AppCore) AddScanTask(params AddScanTaskParams) ResData {
 		SuccessNum: 0,                 // 初始成功数量：0
 		FailedNum:  0,                 // 初始失败数量：0
 		TotalNum:   0,                 // 初始总数：0
+		AlbumID:    params.AlbumID,    // 指定相册ID
 		CreatedAt:  time.Now(),        // 创建时间
 		UpdatedAt:  time.Now(),        // 更新时间
 	}

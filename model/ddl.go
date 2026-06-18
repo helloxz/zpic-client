@@ -51,6 +51,7 @@ type ZPtasks struct {
 	Status     int8      `gorm:"column:status;default:0;not null;index:idx_task_status" json:"status"` // 任务状态
 	CreatedAt  time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt  time.Time `gorm:"column:updated_at" json:"updated_at"`
+	AlbumID     int       `gorm:"column:album_id;default:0;not null" json:"album_id"`
 }
 
 func (ZPtasks) TableName() string {
