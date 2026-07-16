@@ -76,6 +76,10 @@ func LoadConfig() {
 		viper.SetConfigFile(config_file) // 指定配置文件路径
 		//指定ini类型的文件
 		viper.SetConfigType("toml")
+
+		// 设置默认值
+		viper.SetDefault("dedup_enabled", false)
+
 		err := viper.ReadInConfig() // 读取配置信息
 		if err != nil {             // 读取配置信息失败
 			// 写入日志

@@ -12,13 +12,16 @@ type SettingData struct {
 	Token string `json:"token"`
 	// http代理
 	HttpProxy string `json:"http_proxy"`
+	// 扫描去重（默认关闭）
+	DedupEnabled bool `json:"dedup_enabled"`
 }
 
 func (ac *AppCore) GetSetting() SettingData {
 	return SettingData{
-		BaseUrl:   viper.GetString("base_url"),
-		Token:     viper.GetString("token"),
-		HttpProxy: viper.GetString("http_proxy"),
+		BaseUrl:      viper.GetString("base_url"),
+		Token:        viper.GetString("token"),
+		HttpProxy:    viper.GetString("http_proxy"),
+		DedupEnabled: viper.GetBool("dedup_enabled"),
 	}
 }
 
@@ -27,6 +30,7 @@ func (ac *AppCore) UpdateSetting(data SettingData) bool {
 	viper.Set("base_url", data.BaseUrl)
 	viper.Set("token", data.Token)
 	viper.Set("http_proxy", data.HttpProxy)
+	viper.Set("dedup_enabled", data.DedupEnabled)
 	// 写入配置并保存
 	err := viper.WriteConfig()
 	if err != nil {

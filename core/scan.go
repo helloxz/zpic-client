@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"zpic-client/helper"
 	"zpic-client/model"
 
+	"github.com/spf13/viper"
 	"github.com/zeebo/xxh3"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -213,7 +215,6 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 	// 使用事务提交数据，保障一致性
 	err = model.DB.Transaction(func(tx *gorm.DB) error {
 		// 批量插入扫描到的文件信息到zp_task_urls表
-		// 使用INSERT OR IGNORE处理重复hash的情况
 		var taskUrls []model.ZPTaskUrls
 		for _, info := range fileInfos {
 			taskUrls = append(taskUrls, model.ZPTaskUrls{
@@ -229,33 +230,42 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		}
 
 		if len(taskUrls) > 0 {
-			// 预检测：查询已存在的hash，记录将被跳过的重复文件
-			hashes := make([]string, len(taskUrls))
-			for i, tu := range taskUrls {
-				hashes[i] = tu.FileHash
-			}
+			dedupEnabled := viper.GetBool("dedup_enabled")
 
-			var existingHashes []string
-			if err := tx.Model(&model.ZPTaskUrls{}).Where("file_hash IN ?", hashes).Pluck("file_hash", &existingHashes).Error; err != nil {
-				return err
-			}
-
-			existingSet := make(map[string]bool, len(existingHashes))
-			for _, h := range existingHashes {
-				existingSet[h] = true
-			}
-
-			for _, tu := range taskUrls {
-				if existingSet[tu.FileHash] {
-					helper.WriteLog(fmt.Sprintf("ScanTaskURLS: 重复文件被跳过，文件名=%s，hash=%s，路径=%s", tu.FileName, tu.FileHash, tu.OriginPath))
+			if dedupEnabled {
+				// 去重模式：预检测已存在的hash，记录将被跳过的重复文件
+				hashes := make([]string, len(taskUrls))
+				for i, tu := range taskUrls {
+					hashes[i] = tu.FileHash
 				}
-			}
 
-			// 使用Clauses配置INSERT OR IGNORE，处理重复hash
-			if createResult := tx.Clauses(&clause.Insert{
-				Modifier: "OR IGNORE",
-			}).Create(&taskUrls); createResult.Error != nil {
-				return createResult.Error
+				var existingHashes []string
+				if err := tx.Model(&model.ZPTaskUrls{}).Where("file_hash IN ?", hashes).Pluck("file_hash", &existingHashes).Error; err != nil {
+					return err
+				}
+
+				existingSet := make(map[string]bool, len(existingHashes))
+				for _, h := range existingHashes {
+					existingSet[h] = true
+				}
+
+				for _, tu := range taskUrls {
+					if existingSet[tu.FileHash] {
+						helper.WriteLog(fmt.Sprintf("ScanTaskURLS: 重复文件被跳过，文件名=%s，hash=%s，路径=%s", tu.FileName, tu.FileHash, tu.OriginPath))
+					}
+				}
+
+				// 使用Clauses配置INSERT OR IGNORE，处理重复hash
+				if createResult := tx.Clauses(&clause.Insert{
+					Modifier: "OR IGNORE",
+				}).Create(&taskUrls); createResult.Error != nil {
+					return createResult.Error
+				}
+			} else {
+				// 非去重模式：直接插入
+				if createResult := tx.Create(&taskUrls); createResult.Error != nil {
+					return createResult.Error
+				}
 			}
 		}
 
@@ -264,13 +274,20 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		if countResult := tx.Model(&model.ZPTaskUrls{}).Where("task_id = ?", taskID).Count(&insertedCount); countResult.Error != nil {
 			return countResult.Error
 		}
+
+		// 计算TotalNum
+		totalNum := int(insertedCount)
+		if !viper.GetBool("dedup_enabled") {
+			// 非去重模式：TotalNum = 扫描到的文件数
+			totalNum = len(fileInfos)
+		}
+
 		// 如果插入的数量是0，说明存在重复，直接将任务状态更新为完成
 		if insertedCount == 0 {
 			if updateResult := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
 				"status":     model.UploadCompleted,
 				"updated_at": time.Now(),
 			}); updateResult.Error != nil {
-				//fmt.Println("更新错误？？？")
 				return updateResult.Error
 			}
 			return nil
@@ -279,7 +296,7 @@ func ScanTaskURLS(params ScanTaskURLSParams) {
 		// 更新任务状态为ScanCompleted=1，并更新TotalNum
 		if updateResult := tx.Model(&model.ZPtasks{}).Where("id = ?", taskID).Updates(map[string]interface{}{
 			"status":     model.ScanCompleted,
-			"total_num":  int(insertedCount),
+			"total_num":  totalNum,
 			"updated_at": time.Now(),
 		}); updateResult.Error != nil {
 			return updateResult.Error
@@ -396,10 +413,21 @@ func scanDirectory(scanPath string) ([]FileInfo, error) {
 }
 
 // getFileHash 计算文件的hash值
-// 使用轻量读取策略：文件大小 + 前64KB + 后64KB 做 xxh3，避免全量 I/O
+// 如果开启去重：使用轻量读取策略（文件大小 + 前64KB + 后64KB 做 xxh3），避免全量 I/O
+// 如果关闭去重：生成16字符随机hex作为唯一标识，逻辑上实现不去重
 // filePath: 文件的完整路径
 // 返回文件的hash值
 func getFileHash(filePath string) (string, error) {
+	if !viper.GetBool("dedup_enabled") {
+		// 非去重模式：生成8字节随机数转16字符hex，不使用文件内容hash
+		b := make([]byte, 8)
+		if _, err := rand.Read(b); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%x", b), nil
+	}
+
+	// 去重模式：计算文件内容hash
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err

@@ -296,7 +296,7 @@ const handleScanUpload = async () => {
   try {
     const path = await SelectScanDirectory()
     if (path) {
-      const res = await AddScanTask({ path })
+      const res = await AddScanTask({ path, album_id: 0 })
       if (res.status) {
         message.success('任务创建成功')
         fetchData()

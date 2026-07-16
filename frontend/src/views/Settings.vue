@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { NCard, NForm, NFormItem, NInput, NSelect, NButton, NIcon, NAlert, NTooltip } from 'naive-ui'
+import { NCard, NForm, NFormItem, NInput, NSelect, NButton, NIcon, NAlert, NTooltip, NSwitch } from 'naive-ui'
 import { SaveOutline, RefreshOutline, InformationCircleOutline } from '@vicons/ionicons5'
 import { UpdateSetting, GetSetting } from '../../wailsjs/go/core/AppCore'
 import { core } from '../../wailsjs/go/models'
@@ -16,6 +16,7 @@ interface SettingForm {
   token: string
   httpProxy: string
   startupPage: string
+  dedupEnabled: boolean
 }
 
 const serverOptions = [
@@ -45,7 +46,8 @@ const form = ref<SettingForm>({
   baseUrl: '',
   token: '',
   httpProxy: '',
-  startupPage: '/scan-upload'
+  startupPage: '/scan-upload',
+  dedupEnabled: false
 })
 
 const rules = {
@@ -109,6 +111,7 @@ const initSettings = async () => {
     }
     form.value.token = data.token || ''
     form.value.httpProxy = data.http_proxy || ''
+    form.value.dedupEnabled = data.dedup_enabled || false
 
     const savedStartupPage = localStorage.getItem('startupPage')
     if (savedStartupPage) {
@@ -168,7 +171,8 @@ const handleSave = async () => {
     const success = await UpdateSetting({
       base_url: baseUrl,
       token: form.value.token,
-      http_proxy: form.value.httpProxy
+      http_proxy: form.value.httpProxy,
+      dedup_enabled: form.value.dedupEnabled
     })
     if (success) {
       localStorage.setItem('startupPage', form.value.startupPage)
@@ -268,6 +272,25 @@ onMounted(() => {
             :options="startupPageOptions"
             placeholder="请选择启动后进入的页面"
           />
+        </NFormItem>
+
+        <NFormItem path="dedupEnabled">
+          <template #label>
+            <span class="http-proxy-label">
+              <span>扫描去重</span>
+              <NTooltip trigger="hover" placement="right">
+                <template #trigger>
+                  <span class="info-tip">
+                    <NIcon size="16">
+                      <InformationCircleOutline />
+                    </NIcon>
+                  </span>
+                </template>
+                开启后，扫描时根据文件内容hash自动跳过已上传的相同图片。关闭后每次扫描都会添加所有文件。
+              </NTooltip>
+            </span>
+          </template>
+          <NSwitch v-model:value="form.dedupEnabled" />
         </NFormItem>
 
         <NAlert type="info" class="info-alert">

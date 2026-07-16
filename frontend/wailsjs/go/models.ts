@@ -98,6 +98,7 @@ export namespace core {
 	    base_url: string;
 	    token: string;
 	    http_proxy: string;
+	    dedup_enabled: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new SettingData(source);
@@ -108,6 +109,7 @@ export namespace core {
 	        this.base_url = source["base_url"];
 	        this.token = source["token"];
 	        this.http_proxy = source["http_proxy"];
+	        this.dedup_enabled = source["dedup_enabled"];
 	    }
 	}
 	export class UrlsForm {
