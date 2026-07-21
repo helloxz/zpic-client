@@ -2,4 +2,7 @@ build/bin
 node_modules
 frontend/dist
 /data/
-.reasonix
+# Reasonix 本地会话缓存（不提交）
+.reasonix/desktop-topic-*.json
+# Reasonix skills 需提交以便多机共享
+!.reasonix/skills/

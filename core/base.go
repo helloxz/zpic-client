@@ -123,7 +123,7 @@ func UploadZpic(req UploadReq) (bool, UploadResData) {
 
 	// 构造 params JSON 字符串
 	params := uploadParams{
-		Dedup:     true,
+		Dedup:     viper.GetBool("dedup_enabled"),
 		AlbumID:   req.AlbumID,
 		Watermark: false,
 		Compress:  false,

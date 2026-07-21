@@ -1,0 +1,2 @@
+[permissions]
+allow = ["explore", "Edit", "Bash(cd /Users/xiaoz/MyProject/zpic-client && git check-ignore -v .reasonix/skills/build-release/SKILL.md .reasonix/desktop-topic-titles.json .reasonix/skills/)"]

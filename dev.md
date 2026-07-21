@@ -8,6 +8,10 @@
 
 > 备注：数据包括图像压缩二进制文件、配置目录，以及SQLite3数据库
 
+## 修改版本
+
+文件在`core/app.go`
+
 ## 文件命名
 
 统一打包为`.zip`，命名规范如下：
@@ -15,3 +19,5 @@
 * Windows:`ZpicClient_v1.0.0_windows_amd64.zip`
 * macOS:`ZpicClient_v1.0.0_darwin_arm64.zip`
 * Linux:`ZpicClient_v1.0.0_linux_amd64.zip`
+
+> 直接根目录打包。

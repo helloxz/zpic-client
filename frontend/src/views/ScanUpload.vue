@@ -319,7 +319,10 @@ const handleScanDropdownSelect = (key: string) => {
   if (key === 'default') {
     handleScanUpload()
   } else if (key === 'specific') {
-    selectedAlbumId.value = null
+    // 如果后端有相册（albumList长度>1），默认选中第一个后端相册；否则选中默认相册
+    selectedAlbumId.value = baseStore.albumList.length > 1
+      ? baseStore.albumList[1].id
+      : baseStore.albumList[0].id
     selectedFolderPath.value = ''
     showAlbumModal.value = true
   }
